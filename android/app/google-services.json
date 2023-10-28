@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "262387838106",
+    "project_id": "iepilepsy-cba07",
+    "storage_bucket": "iepilepsy-cba07.appspot.com"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:262387838106:android:be910b914650e7917e0323",
+        "android_client_info": {
+          "package_name": "com.example.iepilepsy"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyCdFR3rHERfAqvKoV2aqdVfJROAeZqBtSg"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
