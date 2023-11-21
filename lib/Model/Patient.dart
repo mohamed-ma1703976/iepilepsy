@@ -1,7 +1,7 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 
 class Patient {
-  final String id; // Add an ID field
+  final String id;
   final String name;
   final int age;
   final String diagnosis;
@@ -19,7 +19,6 @@ class Patient {
     required this.profileImage,
   });
 
-  // Factory constructor to create a Patient instance from Firestore data
   factory Patient.fromFirestore(DocumentSnapshot doc) {
     Map<String, dynamic> data = doc.data() as Map<String, dynamic>;
     return Patient(
@@ -33,14 +32,17 @@ class Patient {
     );
   }
 
-  // Function to fetch patient data from Firestore
-  static Future<List<Patient>> fetchPatients() async {
+  // Function to fetch a specific patient's data from Firestore based on user ID
+  static Future<Patient?> fetchPatient(String userId) async {
     try {
-      QuerySnapshot querySnapshot = await FirebaseFirestore.instance.collection('patients').get();
-      return querySnapshot.docs.map((doc) => Patient.fromFirestore(doc)).toList();
+      DocumentSnapshot docSnapshot = await FirebaseFirestore.instance.collection('patients').doc(userId).get();
+      if (docSnapshot.exists) {
+        return Patient.fromFirestore(docSnapshot);
+      }
+      return null;
     } catch (e) {
-      print("Error fetching patients: $e");
-      return [];
+      print("Error fetching patient: $e");
+      return null;
     }
   }
 }

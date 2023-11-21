@@ -55,50 +55,52 @@ class _CasesPageState extends State<CasesPage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: Color(0xFFDCA1FF),
       body: LayoutBuilder(
         builder: (BuildContext context, BoxConstraints constraints) {
-          return Padding(
-            padding: const EdgeInsets.all(12.0),
-            child: SingleChildScrollView(
-              child: ConstrainedBox(
-                constraints: BoxConstraints(minHeight: constraints.maxHeight),
-                child: AnimationLimiter(
-                  child: ListView.builder(
-                    shrinkWrap: true,
-                    physics: NeverScrollableScrollPhysics(),
-                    itemCount: seizures.length,
-                    itemBuilder: (context, index) {
-                      final item = seizures[index];
-                      final icon = getIconBasedOnDuration(item['duration']);
-                      return AnimationConfiguration.staggeredList(
-                        position: index,
-                        duration: const Duration(milliseconds: 375),
-                        child: SlideAnimation(
-                          verticalOffset: 50.0,
-                          child: FadeInAnimation(
-                            child: Card(
-                              margin: EdgeInsets.symmetric(vertical: 8),
-                              child: ListTile(
-                                contentPadding: EdgeInsets.symmetric(horizontal: 20, vertical: 10),
-                                leading: Icon(icon, color: Color(0xFFDCA1FF)),
-                                title: Text(item['type'], style: TextStyle(color: Color(0xFFDCA1FF))),
-                                subtitle: Column(
-                                  crossAxisAlignment: CrossAxisAlignment.start,
-                                  children: [
-                                    Text('Duration: ${item['duration']}', style: TextStyle(color: Color(0xFFDCA1FF))),
-                                    SizedBox(height: 4),
-                                    Text(item['description'], style: TextStyle(color: Color(0xFFDCA1FF))),
-                                    SizedBox(height: 4),
-                                    Text('Effects: ${item['effects']}', style: TextStyle(color: Color(0xFFDCA1FF))),
-                                  ],
+          return Container(
+            color: Color(0xFFd1baf8),
+            child: Padding(
+              padding: const EdgeInsets.all(12.0),
+              child: SingleChildScrollView(
+                child: ConstrainedBox(
+                  constraints: BoxConstraints(minHeight: constraints.maxHeight),
+                  child: AnimationLimiter(
+                    child: ListView.builder(
+                      shrinkWrap: true,
+                      physics: NeverScrollableScrollPhysics(),
+                      itemCount: seizures.length,
+                      itemBuilder: (context, index) {
+                        final item = seizures[index];
+                        final icon = getIconBasedOnDuration(item['duration']);
+                        return AnimationConfiguration.staggeredList(
+                          position: index,
+                          duration: const Duration(milliseconds: 375),
+                          child: SlideAnimation(
+                            verticalOffset: 50.0,
+                            child: FadeInAnimation(
+                              child: Card(
+                                margin: EdgeInsets.symmetric(vertical: 8),
+                                child: ListTile(
+                                  contentPadding: EdgeInsets.symmetric(horizontal: 20, vertical: 10),
+                                  leading: Icon(icon, color: Color(0xFF9C27B0)),
+                                  title: Text(item['type'], style: TextStyle(color: Color(0xFF9C27B0))),
+                                  subtitle: Column(
+                                    crossAxisAlignment: CrossAxisAlignment.start,
+                                    children: [
+                                      Text('Duration: ${item['duration']}', style: TextStyle(color: Color(0xFF9C27B0))),
+                                      SizedBox(height: 4),
+                                      Text(item['description'], style: TextStyle(color: Color(0xFF9C27B0))),
+                                      SizedBox(height: 4),
+                                      Text('Effects: ${item['effects']}', style: TextStyle(color: Color(0xFF9C27B0))),
+                                    ],
+                                  ),
                                 ),
                               ),
                             ),
                           ),
-                        ),
-                      );
-                    },
+                        );
+                      },
+                    ),
                   ),
                 ),
               ),

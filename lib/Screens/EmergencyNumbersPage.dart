@@ -20,39 +20,41 @@ class _EmergencyNumbersPageState extends State<EmergencyNumbersPage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: Color(0xFFDCA1FF), // setting the background color
-      body: Padding(
-        padding: const EdgeInsets.all(12.0),
-        child: AnimationLimiter(
-          child: ListView.builder(
-            itemCount: emergencyNumbers.length,
-            itemBuilder: (context, index) {
-              final item = emergencyNumbers[index];
-              return AnimationConfiguration.staggeredList(
-                position: index,
-                duration: const Duration(milliseconds: 375),
-                child: SlideAnimation(
-                  verticalOffset: 50.0,
-                  child: FadeInAnimation(
-                    child: Card(
-                      margin: EdgeInsets.symmetric(vertical: 8),
-                      child: ListTile(
-                        contentPadding: EdgeInsets.symmetric(horizontal: 20, vertical: 10),
-                        leading: Icon(item['icon'], color: Color(0xFFDCA1FF)),
-                        title: Text(item['name'], style: TextStyle(color: Color(0xFFDCA1FF))),
-                        subtitle: Text(item['number'], style: TextStyle(color: Color(0xFFDCA1FF))),
-                        trailing: IconButton(
-                          icon: Icon(Icons.call, color: Colors.amber),
-                          onPressed: () {
-                            // Add functionality to initiate a phone call.
-                          },
+      body: Container(
+        color: Color(0xFFd1baf8),
+        child: Padding(
+          padding: const EdgeInsets.all(12.0),
+          child: AnimationLimiter(
+            child: ListView.builder(
+              itemCount: emergencyNumbers.length,
+              itemBuilder: (context, index) {
+                final item = emergencyNumbers[index];
+                return AnimationConfiguration.staggeredList(
+                  position: index,
+                  duration: const Duration(milliseconds: 375),
+                  child: SlideAnimation(
+                    verticalOffset: 50.0,
+                    child: FadeInAnimation(
+                      child: Card(
+                        margin: EdgeInsets.symmetric(vertical: 8),
+                        child: ListTile(
+                          contentPadding: EdgeInsets.symmetric(horizontal: 20, vertical: 10),
+                          leading: Icon(item['icon'], color: Color(0xFF9C27B0)),
+                          title: Text(item['name'], style: TextStyle(color: Color(0xFF9C27B0))),
+                          subtitle: Text(item['number'], style: TextStyle(color: Color(0xFF9C27B0))),
+                          trailing: IconButton(
+                            icon: Icon(Icons.call, color: Color(0xFF9C27B0)),
+                            onPressed: () {
+                              // Add functionality to initiate a phone call.
+                            },
+                          ),
                         ),
                       ),
                     ),
                   ),
-                ),
-              );
-            },
+                );
+              },
+            ),
           ),
         ),
       ),

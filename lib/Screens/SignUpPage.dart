@@ -19,9 +19,9 @@ class _SignUpPageState extends State<SignUpPage> {
   final TextEditingController _confirmPasswordController = TextEditingController();
   final TextEditingController _ageController = TextEditingController();
   final TextEditingController _epilepsyTypeController = TextEditingController();
-  String? _gender; // Store the selected gender
-  String? _diagnosis; // Store the entered diagnosis
-  File? _image; // Store the selected image
+  String? _gender;
+  String? _diagnosis;
+  File? _image;
 
   final FirebaseAuth _firebaseAuth = FirebaseAuth.instance;
   final FirebaseFirestore _firestore = FirebaseFirestore.instance;
@@ -43,12 +43,11 @@ class _SignUpPageState extends State<SignUpPage> {
       ),
       focusedBorder: OutlineInputBorder(
         borderRadius: BorderRadius.circular(15),
-        borderSide: BorderSide(color: Colors.blue, width: 2),
+        borderSide: BorderSide(color: Color(0xFFcbb3e3), width: 2),
       ),
     );
   }
 
-  // Function to handle image selection
   Future<void> _selectImage() async {
     final picker = ImagePicker();
     final pickedImage = await picker.pickImage(source: ImageSource.gallery);
@@ -61,7 +60,6 @@ class _SignUpPageState extends State<SignUpPage> {
   }
 
   Future<void> _handleSignUp() async {
-    // Validate user input
     if (_nameController.text.isEmpty ||
         _emailController.text.isEmpty ||
         _passwordController.text.isEmpty ||
@@ -70,57 +68,51 @@ class _SignUpPageState extends State<SignUpPage> {
         _epilepsyTypeController.text.isEmpty ||
         _gender == null ||
         _diagnosis == null) {
-      // Show an error message if any field is empty
       _showErrorMessage("Please fill in all fields.");
       return;
     }
 
-    // Check if the passwords match
     if (_passwordController.text != _confirmPasswordController.text) {
       _showErrorMessage("Passwords do not match.");
       return;
     }
 
     try {
-      // Create a Firebase user
-      final UserCredential userCredential =
-      await _firebaseAuth.createUserWithEmailAndPassword(
+      final UserCredential userCredential = await _firebaseAuth.createUserWithEmailAndPassword(
         email: _emailController.text,
         password: _passwordController.text,
       );
 
-      // User registration successful, proceed to save user data to Firestore
+      if (userCredential.user != null) {
+        final String userId = userCredential.user!.uid;
 
-      // Create a new Patient object with the collected information
-      final patient = Patient(
-        id: userCredential.user!.uid, // Use the UID of the Firebase user as the patient's ID
-        name: _nameController.text,
-        age: int.tryParse(_ageController.text) ?? 0,
-        diagnosis: _diagnosis!,
-        gender: _gender!,
-        epilepsyType: _epilepsyTypeController.text,
-        profileImage: _image != null ? _image!.path : '',
-      );
+        final patient = Patient(
+          id: userId,
+          name: _nameController.text,
+          age: int.tryParse(_ageController.text) ?? 0,
+          diagnosis: _diagnosis!,
+          gender: _gender!,
+          epilepsyType: _epilepsyTypeController.text,
+          profileImage: _image != null ? _image!.path : '',
+        );
 
-      // Save patient data to Firestore
-      await _firestore.collection('patients').doc(patient.id).set({
-        'name': patient.name,
-        'age': patient.age,
-        'diagnosis': patient.diagnosis,
-        'gender': patient.gender,
-        'epilepsyType': patient.epilepsyType,
-        'profileImage': patient.profileImage,
-      });
+        await _firestore.collection('patients').doc(userId).set({
+          'name': patient.name,
+          'age': patient.age,
+          'diagnosis': patient.diagnosis,
+          'gender': patient.gender,
+          'epilepsyType': patient.epilepsyType,
+          'profileImage': patient.profileImage,
+        });
 
-      // Navigate to the home page with the patient data
-      Navigator.pushReplacement(
-        context,
-        MaterialPageRoute(
-          builder: (context) => HomePage(patient: patient),
-        ),
-      );
+        Navigator.pushReplacement(
+          context,
+          MaterialPageRoute(
+            builder: (context) => HomePage(patientId: userId),
+          ),
+        );
+      }
     } catch (e) {
-      // Handle Firebase sign-up error
       _showErrorMessage("Error signing up. Please try again.");
     }
   }
@@ -144,136 +136,130 @@ class _SignUpPageState extends State<SignUpPage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: Color(0xFFDCA1FF),
-      body: SingleChildScrollView(
-        child: Center(
-          child: Column(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              GestureDetector(
-                onTap: _selectImage,
-                child: _image == null
-                    ? CircleAvatar(
-                  radius: 50,
-                  backgroundImage:
-                  AssetImage('assets/default_avatar.jpg'),
-                )
-                    : CircleAvatar(
-                  radius: 50,
-                  backgroundImage: FileImage(_image!),
+      body: Container(
+        color: Color(0xFFd1baf8),
+        child: SingleChildScrollView(
+          child: Center(
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                GestureDetector(
+                  onTap: _selectImage,
+                  child: _image == null
+                      ? CircleAvatar(
+                    radius: 50,
+                    backgroundImage: AssetImage('assets/default_avatar.jpg'),
+                  )
+                      : CircleAvatar(
+                    radius: 50,
+                    backgroundImage: FileImage(_image!),
+                  ),
                 ),
-              ),
-              SizedBox(height: 10),
-              TextButton(
-                onPressed: _selectImage,
-                child: Text(
-                  'Select Profile Picture',
-                  style: TextStyle(color: Colors.amber),
+                SizedBox(height: 10),
+                TextButton(
+                  onPressed: _selectImage,
+                  child: Text('Select Profile Picture', style: TextStyle(color: Colors.white)),
                 ),
-              ),
-              SizedBox(height: 20),
-              Padding(
-                padding: const EdgeInsets.all(16.0),
-                child: TextField(
-                  controller: _nameController,
-                  decoration: _inputDecoration("Enter Name"),
+                SizedBox(height: 20),
+                Padding(
+                  padding: const EdgeInsets.all(16.0),
+                  child: TextField(
+                    controller: _nameController,
+                    decoration: _inputDecoration("Enter Name"),
+                  ),
                 ),
-              ),
-              Padding(
-                padding: const EdgeInsets.all(16.0),
-                child: TextField(
-                  controller: _emailController,
-                  decoration: _inputDecoration("Enter Email"),
+                Padding(
+                  padding: const EdgeInsets.all(16.0),
+                  child: TextField(
+                    controller: _emailController,
+                    decoration: _inputDecoration("Enter Email"),
+                  ),
                 ),
-              ),
-              Padding(
-                padding: const EdgeInsets.all(16.0),
-                child: TextField(
-                  controller: _passwordController,
-                  obscureText: true,
-                  decoration: _inputDecoration("Enter Password"),
+                Padding(
+                  padding: const EdgeInsets.all(16.0),
+                  child: TextField(
+                    controller: _passwordController,
+                    obscureText: true,
+                    decoration: _inputDecoration("Enter Password"),
+                  ),
                 ),
-              ),
-              Padding(
-                padding: const EdgeInsets.all(16.0),
-                child: TextField(
-                  controller: _confirmPasswordController,
-                  obscureText: true,
-                  decoration: _inputDecoration("Confirm Password"),
+                Padding(
+                  padding: const EdgeInsets.all(16.0),
+                  child: TextField(
+                    controller: _confirmPasswordController,
+                    obscureText: true,
+                    decoration: _inputDecoration("Confirm Password"),
+                  ),
                 ),
-              ),
-              Padding(
-                padding: const EdgeInsets.all(16.0),
-                child: TextField(
-                  controller: _ageController,
-                  keyboardType: TextInputType.number,
-                  decoration: _inputDecoration("Enter Age"),
+                Padding(
+                  padding: const EdgeInsets.all(16.0),
+                  child: TextField(
+                    controller: _ageController,
+                    keyboardType: TextInputType.number,
+                    decoration: _inputDecoration("Enter Age"),
+                  ),
                 ),
-              ),
-              Padding(
-                padding: const EdgeInsets.all(16.0),
-                child: TextField(
-                  controller: _epilepsyTypeController,
-                  decoration: _inputDecoration("Enter Epilepsy Type"),
+                Padding(
+                  padding: const EdgeInsets.all(16.0),
+                  child: TextField(
+                    controller: _epilepsyTypeController,
+                    decoration: _inputDecoration("Enter Epilepsy Type"),
+                  ),
                 ),
-              ),
-              SizedBox(height: 10),
-              // Radio buttons for gender selection
-              Row(
-                children: [
-                  SizedBox(width: 10),
-                  Text('Gender: ',
-                      style: TextStyle(fontSize: 16, color: Colors.white)),
-                  Radio(
-                    value: 'Male',
-                    groupValue: _gender,
+                SizedBox(height: 10),
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    Text('Gender: ', style: TextStyle(fontSize: 16, color: Colors.white)),
+                    Radio(
+                      value: 'Male',
+                      groupValue: _gender,
+                      onChanged: (value) {
+                        setState(() {
+                          _gender = value.toString();
+                        });
+                      },
+                    ),
+                    Text('Male', style: TextStyle(fontSize: 16, color: Colors.white)),
+                    Radio(
+                      value: 'Female',
+                      groupValue: _gender,
+                      onChanged: (value) {
+                        setState(() {
+                          _gender = value.toString();
+                        });
+                      },
+                    ),
+                    Text('Female', style: TextStyle(fontSize: 16, color: Colors.white)),
+                  ],
+                ),
+                SizedBox(height: 10),
+                Padding(
+                  padding: const EdgeInsets.all(16.0),
+                  child: TextField(
                     onChanged: (value) {
                       setState(() {
-                        _gender = value.toString();
+                        _diagnosis = value;
                       });
                     },
-                  ),
-                  Text('Male',
-                      style: TextStyle(fontSize: 16, color: Colors.white)),
-                  Radio(
-                    value: 'Female',
-                    groupValue: _gender,
-                    onChanged: (value) {
-                      setState(() {
-                        _gender = value.toString();
-                      });
-                    },
-                  ),
-                  Text('Female',
-                      style: TextStyle(fontSize: 16, color: Colors.white)),
-                ],
-              ),
-              SizedBox(height: 10),
-              Padding(
-                padding: const EdgeInsets.all(16.0),
-                child: TextField(
-                  onChanged: (value) {
-                    setState(() {
-                      _diagnosis = value;
-                    });
-                  },
-                  decoration: _inputDecoration("Enter Diagnosis"),
-                ),
-              ),
-              SizedBox(height: 20),
-              ElevatedButton(
-                onPressed: _handleSignUp, // Call _handleSignUp to initiate sign-up
-                style: ElevatedButton.styleFrom(
-                  primary: Colors.amber,
-                  onPrimary: Colors.black,
-                  padding: EdgeInsets.symmetric(horizontal: 40, vertical: 12),
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(15),
+                    decoration: _inputDecoration("Enter Diagnosis"),
                   ),
                 ),
-                child: Text("Sign Up"),
-              ),
-            ],
+                SizedBox(height: 20),
+                ElevatedButton(
+                  onPressed: _handleSignUp,
+                  style: ElevatedButton.styleFrom(
+                    primary: Color(0xFFe8e0ed),
+                    onPrimary: Color(0xFF9C27B0),
+                    padding: EdgeInsets.symmetric(horizontal: 40, vertical: 12),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(15),
+                    ),
+                  ),
+                  child: Text("Sign Up"),
+                ),
+              ],
+            ),
           ),
         ),
       ),

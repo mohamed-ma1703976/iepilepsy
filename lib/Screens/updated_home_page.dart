@@ -11,87 +11,81 @@ class UpdatedHomePage extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: Color(0xFFDCA1FF),
       body: SafeArea(
-        child: Padding(
-          padding: const EdgeInsets.all(16.0),
-          child: Stack(
-            children: [
-              AnimationLimiter(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.stretch,
-                  children: AnimationConfiguration.toStaggeredList(
-                    duration: const Duration(milliseconds: 375),
-                    childAnimationBuilder: (widget) => SlideAnimation(
-                      horizontalOffset: 50.0,
-                      child: FadeInAnimation(
-                        child: widget,
-                      ),
-                    ),
-                    children: [
-                      Row(
-                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                        children: [
-                          ClayContainer(
-                            borderRadius: 50,
-                            color: Color(0xFFDCA1FF),
-                            child: Image.asset(
-                              'assets/lOGO.png',
-                              height: 100,
-                              width: 100,
-                            ),
-                          ),
-                          ClayContainer(
-                            color: Color(0xFFDCA1FF),
-                            borderRadius: 50,
-                            child: IconButton(
-                              icon: Icon(EvaIcons.alertCircleOutline, color: Colors.red),
-                              onPressed: () {
-                                // Logout logic here
-                                _logout(context);
-                              },
-                            ),
-                          ),
-                        ],
-                      ),
-                      SizedBox(height: 32),
-                      Text(
-                        'Your Epilepsy Companion',
-                        textAlign: TextAlign.center,
-                        style: TextStyle(
-                          fontSize: 28,
-                          fontWeight: FontWeight.bold,
-                          color: Colors.white,
+        child: Container(
+          color: Color(0xFFd1baf8),
+          child: Padding(
+            padding: const EdgeInsets.all(16.0),
+            child: Stack(
+              children: [
+                AnimationLimiter(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.stretch,
+                    children: AnimationConfiguration.toStaggeredList(
+                      duration: const Duration(milliseconds: 375),
+                      childAnimationBuilder: (widget) => SlideAnimation(
+                        horizontalOffset: 50.0,
+                        child: FadeInAnimation(
+                          child: widget,
                         ),
                       ),
-                      SizedBox(height: 32),
-                      AlertBar(),
-                      SizedBox(height: 10),
-                      CurrentReadingsBox(),
-                    ],
+                      children: [
+                        Row(
+                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                          children: [
+                            Image.asset(
+                                'assets/logo.png',
+                                height: 100,
+                                width: 100,
+                              ),
+                            ClayContainer(
+                              borderRadius: 50,
+                              child: IconButton(
+                                icon: Icon(EvaIcons.alertCircleOutline, color: Colors.red),
+                                onPressed: () {
+                                  _logout(context);
+                                },
+                              ),
+                            ),
+                          ],
+                        ),
+                        SizedBox(height: 32),
+                        Text(
+                          'Your Epilepsy Companion',
+                          textAlign: TextAlign.center,
+                          style: TextStyle(
+                            fontSize: 28,
+                            fontWeight: FontWeight.bold,
+                            color: Colors.white,
+                          ),
+                        ),
+                        SizedBox(height: 32),
+                        AlertBar(),
+                        SizedBox(height: 10),
+                        CurrentReadingsBox(),
+                      ],
+                    ),
                   ),
                 ),
-              ),
-              Align(
-                alignment: Alignment.bottomCenter,
-                child: Padding(
-                  padding: const EdgeInsets.only(bottom: 16.0),
-                  child: MessageDoctorCard(),
+                Align(
+                  alignment: Alignment.bottomCenter,
+                  child: Padding(
+                    padding: const EdgeInsets.only(bottom: 16.0),
+                    child: MessageDoctorCard(),
+                  ),
                 ),
-              ),
-            ],
+              ],
+            ),
           ),
         ),
       ),
     );
   }
 }
+
 void _logout(BuildContext context) {
   // Implement your logout logic here
-  // For example, if you're using Firebase authentication, you would call:
-  // FirebaseAuth.instance.signOut();
-
-  // After logging out, navigate to SignInPage
+  // Navigate to SignInPage after logout
   Navigator.of(context).pushReplacement(MaterialPageRoute(
     builder: (context) => SignInPage(),
   ));
@@ -119,21 +113,8 @@ class _AlertBarState extends State<AlertBar> {
 
   void _changeAlertType() {
     setState(() {
-      _currentIndex = (_currentIndex + 1) % 4; // Cycle through the alerts.
-      switch (_currentIndex) {
-        case 0:
-          _currentAlertType = AlertType.alert1;
-          break;
-        case 1:
-          _currentAlertType = AlertType.alert2;
-          break;
-        case 2:
-          _currentAlertType = AlertType.alert3;
-          break;
-        case 3:
-          _currentAlertType = AlertType.alert4;
-          break;
-      }
+      _currentIndex = (_currentIndex + 1) % 4;
+      _currentAlertType = AlertType.values[_currentIndex];
     });
   }
 
@@ -154,7 +135,7 @@ class _AlertBarState extends State<AlertBar> {
 
   @override
   void dispose() {
-    _timer.cancel(); // Cancel the timer when the widget is disposed.
+    _timer.cancel();
     super.dispose();
   }
 
@@ -171,17 +152,9 @@ class _AlertBarState extends State<AlertBar> {
           Icon(EvaIcons.alertCircleOutline, color: Colors.white, size: 40),
           SizedBox(width: 12),
           Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  getAlertMessage(),
-                  style: TextStyle(
-                      color: Colors.white,
-                      fontWeight: FontWeight.bold,
-                      fontSize: 18),
-                ),
-              ],
+            child: Text(
+              getAlertMessage(),
+              style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 18),
             ),
           ),
         ],
@@ -198,17 +171,16 @@ class MessageDoctorCard extends StatelessWidget {
         _showMessageDialog(context);
       },
       child: ClayContainer(
-        width: MediaQuery.of(context).size.width * 0.5,  // 50% of the screen width for a smaller card
         borderRadius: 25,
         depth: 20,
         spread: 5,
         child: Padding(
-          padding: const EdgeInsets.all(8.0),  // Reduced padding for a smaller card
+          padding: const EdgeInsets.all(8.0),
           child: Row(
             children: [
-              Icon(EvaIcons.emailOutline, color: Colors.amber, size: 24),  // Slightly smaller icon
-              SizedBox(width: 8),  // Reduced space for a smaller card
-              Text('Message Your Dr', style: TextStyle(color: Colors.amber, fontSize: 16, fontWeight: FontWeight.bold)),  // Smaller font size
+              Icon(EvaIcons.emailOutline, color: Colors.red, size: 24),
+              SizedBox(width: 8),
+              Text('Message Your Dr', style: TextStyle(color: Colors.red, fontSize: 16, fontWeight: FontWeight.bold)),
             ],
           ),
         ),
@@ -243,7 +215,6 @@ class MessageDoctorCard extends StatelessWidget {
               child: Text("Send"),
               onPressed: () {
                 // Logic to send the message
-                // For now, it just prints the message to the console and closes the dialog
                 print("Message to Dr: ${_messageController.text}");
                 Navigator.of(context).pop();
               },
@@ -254,6 +225,7 @@ class MessageDoctorCard extends StatelessWidget {
     );
   }
 }
+
 class CurrentReadingsBox extends StatelessWidget {
   final List<Map<String, dynamic>> readings = [
     {
@@ -269,15 +241,15 @@ class CurrentReadingsBox extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Container(
-      margin: EdgeInsets.symmetric(vertical: 10), // Simplified margin
-      padding: EdgeInsets.symmetric(horizontal: 12, vertical: 6), // Reduced vertical padding
+      margin: EdgeInsets.symmetric(vertical: 10),
+      padding: EdgeInsets.symmetric(horizontal: 12, vertical: 6),
       decoration: BoxDecoration(
         color: Colors.white,
         borderRadius: BorderRadius.circular(15),
         boxShadow: [
           BoxShadow(
             color: Colors.black.withOpacity(0.1),
-            blurRadius: 10, // Reduced blur radius
+            blurRadius: 10,
           ),
         ],
       ),
@@ -288,16 +260,16 @@ class CurrentReadingsBox extends StatelessWidget {
             title: Text(
               reading['title'],
               style: TextStyle(
-                fontSize: 14, // Adjusted font size
+                fontSize: 14,
                 color: Color(0xFFDCA1FF),
-                fontWeight: FontWeight.w500, // Lighter font weight
+                fontWeight: FontWeight.w500,
               ),
             ),
             trailing: Text(
               reading['value'],
               style: TextStyle(color: Color(0xFFDCA1FF), fontSize: 14),
             ),
-            dense: true, // Makes it a bit more compact
+            dense: true,
           );
         }).toList(),
       ),

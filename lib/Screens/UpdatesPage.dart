@@ -26,58 +26,60 @@ class _UpdatesPageState extends State<UpdatesPage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: Color(0xFFDCA1FF),
-      body: Center(
-        child: Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 12.0),
-          child: AnimationLimiter(
-            child: Column(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: AnimationConfiguration.toStaggeredList(
-                duration: const Duration(milliseconds: 375),
-                childAnimationBuilder: (widget) => SlideAnimation(
-                  verticalOffset: 50.0,
-                  child: FadeInAnimation(
-                    child: widget,
+      body: Container(
+        color: Color(0xFFd1baf8),
+        child: Center(
+          child: Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 12.0),
+            child: AnimationLimiter(
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: AnimationConfiguration.toStaggeredList(
+                  duration: const Duration(milliseconds: 375),
+                  childAnimationBuilder: (widget) => SlideAnimation(
+                    verticalOffset: 50.0,
+                    child: FadeInAnimation(
+                      child: widget,
+                    ),
                   ),
-                ),
-                children: readings.take(2).map((reading) {
-                  return Container(
-                    width: double.infinity, // This will make the container width to fill the available space
-                    margin: EdgeInsets.symmetric(vertical: 20),
-                    padding: EdgeInsets.all(20),
-                    decoration: BoxDecoration(
-                      color: Colors.white,
-                      borderRadius: BorderRadius.circular(15),
-                      boxShadow: [
-                        BoxShadow(
-                          color: Colors.black.withOpacity(0.1),
-                          blurRadius: 15,
-                          offset: Offset(0, 5),
-                        ),
-                      ],
-                    ),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(
-                          reading['title'],
-                          style: TextStyle(
-                            fontSize: 20,
-                            color: Color(0xFFDCA1FF),
-                            fontWeight: FontWeight.w600,
+                  children: readings.take(2).map((reading) {
+                    return Container(
+                      width: double.infinity,
+                      margin: EdgeInsets.symmetric(vertical: 20),
+                      padding: EdgeInsets.all(20),
+                      decoration: BoxDecoration(
+                        color: Colors.white.withOpacity(0.8), // Slightly transparent white
+                        borderRadius: BorderRadius.circular(15),
+                        boxShadow: [
+                          BoxShadow(
+                            color: Colors.black.withOpacity(0.1),
+                            blurRadius: 15,
+                            offset: Offset(0, 5),
                           ),
-                        ),
-                        SizedBox(height: 10),
-                        Text('Value: ${reading['value']}', style: TextStyle(color: Colors.amber, fontSize: 18)),
-                        SizedBox(height: 10),
-                        Text('Normal Range: ${reading['normalRange']}', style: TextStyle(color: Color(0xFFDCA1FF), fontSize: 16)),
-                        SizedBox(height: 10),
-                        Text('Instruction: ${reading['instruction']}', style: TextStyle(color: Color(0xFFDCA1FF), fontSize: 16)),
-                      ],
-                    ),
-                  );
-                }).toList(),
+                        ],
+                      ),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            reading['title'],
+                            style: TextStyle(
+                              fontSize: 20,
+                              color: Color(0xFF9C27B0), // Adjusted color for readability
+                              fontWeight: FontWeight.w600,
+                            ),
+                          ),
+                          SizedBox(height: 10),
+                          Text('Value: ${reading['value']}', style: TextStyle(color: Color(0xFF9C27B0), fontSize: 18)),
+                          SizedBox(height: 10),
+                          Text('Normal Range: ${reading['normalRange']}', style: TextStyle(color: Color(0xFF9C27B0), fontSize: 16)),
+                          SizedBox(height: 10),
+                          Text('Instruction: ${reading['instruction']}', style: TextStyle(color: Color(0xFF9C27B0), fontSize: 16)),
+                        ],
+                      ),
+                    );
+                  }).toList(),
+                ),
               ),
             ),
           ),

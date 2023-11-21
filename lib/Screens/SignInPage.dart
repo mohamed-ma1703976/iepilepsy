@@ -3,7 +3,6 @@ import '../HomePage.dart';
 import '../Repository/AuthRepository.dart';
 import 'SignUpPage.dart';
 import 'package:flutter_staggered_animations/flutter_staggered_animations.dart';
-
 class SignInPage extends StatefulWidget {
   @override
   _SignInPageState createState() => _SignInPageState();
@@ -22,18 +21,18 @@ class _SignInPageState extends State<SignInPage> with SingleTickerProviderStateM
       hintStyle: TextStyle(color: Colors.white60),
       contentPadding: EdgeInsets.symmetric(vertical: 10.0, horizontal: 20.0),
       filled: true,
-      fillColor: Colors.white.withOpacity(0.2),  // Transparent fill color
+      fillColor: Colors.white.withOpacity(0.2), // Adjust the transparency as needed
       border: OutlineInputBorder(
         borderRadius: BorderRadius.circular(15),
         borderSide: BorderSide.none,
       ),
       enabledBorder: OutlineInputBorder(
         borderRadius: BorderRadius.circular(15),
-        borderSide: BorderSide(color: Colors.white.withOpacity(0.7), width: 1),  // Slightly transparent white border
+        borderSide: BorderSide(color: Colors.white.withOpacity(0.7), width: 1), // Adjust the transparency as needed
       ),
       focusedBorder: OutlineInputBorder(
         borderRadius: BorderRadius.circular(15),
-        borderSide: BorderSide(color: Colors.blue, width: 2),  // Solid blue when focused
+        borderSide: BorderSide(color: Color(0xFFcbb3e3), width: 2), // Updated to match the ribbon color
       ),
     );
   }
@@ -51,125 +50,134 @@ class _SignInPageState extends State<SignInPage> with SingleTickerProviderStateM
   }
 
   Future<void> _signIn() async {
-    final email = _emailController.text;
-    final password = _passwordController.text;
+    if (_emailController.text.isEmpty || _passwordController.text.isEmpty) {
+      // Show an error message if email or password is empty
+      _showErrorMessage("Please enter both email and password.");
+      return;
+    }
 
-    if (email.isEmpty || password.isEmpty) {
-      showDialog(
-        context: context,
-        builder: (context) => AlertDialog(
-          title: Text('Error'),
-          content: Text('Please enter Email and password.'),
-          actions: [
-            TextButton(
-              child: Text('OK'),
-              onPressed: () => Navigator.of(context).pop(),
-            )
-          ],
-        ),
+    try {
+      // Sign in with email and password using the AuthRepository
+      final user = await _authRepository.signIn(
+        email: _emailController.text,
+        password: _passwordController.text,
       );
-    } else {
-      final user = await _authRepository.signIn(email: email, password: password);
 
       if (user != null) {
-        // Successfully signed in, navigate to the home page
-        Navigator.pushReplacement(
-          context,
-          MaterialPageRoute(builder: (context) => HomePage()),
+        // If the sign in is successful and a user is returned, navigate to the HomePage
+        Navigator.of(context).pushReplacement(
+          MaterialPageRoute(builder: (context) => HomePage(patientId: user.uid)), // Pass the user ID to HomePage
         );
       } else {
-        showDialog(
-          context: context,
-          builder: (context) => AlertDialog(
-            title: Text('Error'),
-            content: Text('Authentication failed. Please check your credentials.'),
-            actions: [
-              TextButton(
-                child: Text('OK'),
-                onPressed: () => Navigator.of(context).pop(),
-              )
-            ],
-          ),
-        );
+        // Handle the case where the user is null (sign-in failed)
+        _showErrorMessage("Sign-in failed. Please try again.");
       }
+    } catch (e) {
+      // Handle errors during sign-in, like wrong password or no user found
+      _showErrorMessage("Error signing in: ${e.toString()}");
     }
+  }
+
+  void _showErrorMessage(String message) {
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: Text('Error'),
+        content: Text(message),
+        actions: <Widget>[
+          TextButton(
+            child: Text('OK'),
+            onPressed: () => Navigator.of(context).pop(),
+          ),
+        ],
+      ),
+    );
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: Color(0xFFDCA1FF),
-      body: SingleChildScrollView(
-        child: AnimationConfiguration.synchronized(
-          child: Center(
-            child: Column(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: AnimationConfiguration.toStaggeredList(
-                duration: const Duration(milliseconds: 700),
-                childAnimationBuilder: (widget) => SlideAnimation(
-                  verticalOffset: 50.0,
-                  child: FadeInAnimation(
-                    child: widget,
-                  ),
-                ),
-                children: [
-                  ScaleTransition(
-                    scale: _scaleAnimation,
-                    child: Image.asset('assets/lOGO.png', height: 300, width: 300,),
-                  ),
-                  SizedBox(height: 20),
-                  Padding(
-                    padding: const EdgeInsets.all(16.0),
-                    child: TextField(
-                      controller: _emailController,
-                      decoration: _inputDecoration("Enter Email"),
+        body: SingleChildScrollView(
+        child: ConstrainedBox(
+        constraints: BoxConstraints(
+        minHeight: MediaQuery.of(context).size.height,
+    ),
+    child: IntrinsicHeight( // Ensures the column's height matches the height of its parent
+    child: Container(
+      color: Color(0xFFd1baf8),
+          child: AnimationConfiguration.synchronized(
+            child: Center(
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: AnimationConfiguration.toStaggeredList(
+                  duration: const Duration(milliseconds: 700),
+                  childAnimationBuilder: (widget) => SlideAnimation(
+                    verticalOffset: 50.0,
+                    child: FadeInAnimation(
+                      child: widget,
                     ),
                   ),
-                  Padding(
-                    padding: const EdgeInsets.all(16.0),
-                    child: TextField(
-                      controller: _passwordController,
-                      obscureText: true,
-                      decoration: _inputDecoration("Enter Password"),
+                  children: [
+                    ScaleTransition(
+                      scale: _scaleAnimation,
+                      child: Image.asset('assets/logo.png', height: 300, width: 300), // Ensure the asset path is correct
                     ),
-                  ),
-                  ElevatedButton(
-                    onPressed: _signIn, // Call the _signIn method
-                    style: ElevatedButton.styleFrom(
-                      primary: Colors.amber,
-                      onPrimary: Colors.black,
-                      padding: EdgeInsets.symmetric(horizontal: 40, vertical: 12),
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(15),
+                    SizedBox(height: 20),
+                    Padding(
+                      padding: const EdgeInsets.all(16.0),
+                      child: TextField(
+                        controller: _emailController,
+                        decoration: _inputDecoration("Enter Email"),
                       ),
                     ),
-                    child: Text("Sign In"),
-                  ),
-                  SizedBox(height: 20),
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      Text("Don't have an account? "),
-                      GestureDetector(
-                        onTap: () {
-                          Navigator.push(context, MaterialPageRoute(builder: (context) => SignUpPage()));
-                        },
-                        child: Text(
-                          "Sign Up",
-                          style: TextStyle(
-                            color: Colors.amber,
-                            decoration: TextDecoration.underline,
-                          ),
+                    Padding(
+                      padding: const EdgeInsets.all(16.0),
+                      child: TextField(
+                        controller: _passwordController,
+                        obscureText: true,
+                        decoration: _inputDecoration("Enter Password"),
+                      ),
+                    ),
+                    ElevatedButton(
+                      onPressed: _signIn, // Call the _signIn method
+                      style: ElevatedButton.styleFrom(
+                        primary: Color(0xFFe8e0ed), // Updated to match the ribbon color
+                        onPrimary: Color(0xFF9C27B0), // Change text color if needed
+                        padding: EdgeInsets.symmetric(horizontal: 40, vertical: 12),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(15),
                         ),
                       ),
-                    ],
-                  ),
-                ],
+                      child: Text("Sign In"),
+                    ),
+                    SizedBox(height: 20),
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        Text("Don't have an account? "),
+                        GestureDetector(
+                          onTap: () {
+                            Navigator.of(context).pushReplacement(MaterialPageRoute(builder: (context) => SignUpPage()));
+                          },
+                          child: Text(
+                            "Sign Up",
+                            style: TextStyle(
+                              color: Colors.white, // Updated to match a lighter purple shade
+                              decoration: TextDecoration.underline,
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ],
+                ),
               ),
             ),
           ),
         ),
       ),
+    ),
+        ),
     );
   }
 
