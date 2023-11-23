@@ -20,9 +20,14 @@ class _UpdatesPageState extends State<UpdatesPage> {
       'normalRange': '12-20 per minute',
       'instruction': 'Normal blinking rate.',
     },
+    {
+      'title': 'Heart Rate',
+      'value': '70 bpm', // Example value
+      'normalRange': '60-100 bpm', // Example normal range
+      'instruction': 'Heart rate is normal.', // Example instruction
+    },
     // ... other readings can be added here
   ];
-
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -42,7 +47,7 @@ class _UpdatesPageState extends State<UpdatesPage> {
                       child: widget,
                     ),
                   ),
-                  children: readings.take(2).map((reading) {
+                  children: readings.take(3).map((reading) {
                     return Container(
                       width: double.infinity,
                       margin: EdgeInsets.symmetric(vertical: 20),
