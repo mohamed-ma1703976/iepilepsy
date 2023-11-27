@@ -26,7 +26,7 @@ class _SignUpPageState extends State<SignUpPage> {
   final FirebaseAuth _firebaseAuth = FirebaseAuth.instance;
   final FirebaseFirestore _firestore = FirebaseFirestore.instance;
 
-  InputDecoration _inputDecoration(String hintText) {
+  InputDecoration _inputDecoration(String hintText, double screenWidth) {
     return InputDecoration(
       hintText: hintText,
       hintStyle: TextStyle(color: Colors.white60),
@@ -135,6 +135,9 @@ class _SignUpPageState extends State<SignUpPage> {
 
   @override
   Widget build(BuildContext context) {
+    double screenWidth = MediaQuery.of(context).size.width;
+    double screenHeight = MediaQuery.of(context).size.height;
+
     return Scaffold(
       body: Container(
         color: Color(0xFFd1baf8),
@@ -147,66 +150,66 @@ class _SignUpPageState extends State<SignUpPage> {
                   onTap: _selectImage,
                   child: _image == null
                       ? CircleAvatar(
-                    radius: 50,
+                    radius: screenWidth * 0.12,
                     backgroundImage: AssetImage('assets/default_avatar.jpg'),
                   )
                       : CircleAvatar(
-                    radius: 50,
+                    radius: screenWidth * 0.12,
                     backgroundImage: FileImage(_image!),
                   ),
                 ),
-                SizedBox(height: 10),
+                SizedBox(height: screenHeight * 0.02),
                 TextButton(
                   onPressed: _selectImage,
                   child: Text('Select Profile Picture', style: TextStyle(color: Colors.white)),
                 ),
-                SizedBox(height: 20),
+                SizedBox(height: screenHeight * 0.03),
                 Padding(
-                  padding: const EdgeInsets.all(16.0),
+                  padding: EdgeInsets.all(screenWidth * 0.04),
                   child: TextField(
                     controller: _nameController,
-                    decoration: _inputDecoration("Enter Name"),
+                    decoration: _inputDecoration("Enter Name", screenWidth),
                   ),
                 ),
                 Padding(
-                  padding: const EdgeInsets.all(16.0),
+                  padding: EdgeInsets.all(screenWidth * 0.04),
                   child: TextField(
                     controller: _emailController,
-                    decoration: _inputDecoration("Enter Email"),
+                    decoration: _inputDecoration("Enter Email", screenWidth),
                   ),
                 ),
                 Padding(
-                  padding: const EdgeInsets.all(16.0),
+                  padding: EdgeInsets.all(screenWidth * 0.04),
                   child: TextField(
                     controller: _passwordController,
                     obscureText: true,
-                    decoration: _inputDecoration("Enter Password"),
+                    decoration: _inputDecoration("Enter Password", screenWidth),
                   ),
                 ),
                 Padding(
-                  padding: const EdgeInsets.all(16.0),
+                  padding: EdgeInsets.all(screenWidth * 0.04),
                   child: TextField(
                     controller: _confirmPasswordController,
                     obscureText: true,
-                    decoration: _inputDecoration("Confirm Password"),
+                    decoration: _inputDecoration("Confirm Password", screenWidth),
                   ),
                 ),
                 Padding(
-                  padding: const EdgeInsets.all(16.0),
+                  padding: EdgeInsets.all(screenWidth * 0.04),
                   child: TextField(
                     controller: _ageController,
                     keyboardType: TextInputType.number,
-                    decoration: _inputDecoration("Enter Age"),
+                    decoration: _inputDecoration("Enter Age", screenWidth),
                   ),
                 ),
                 Padding(
-                  padding: const EdgeInsets.all(16.0),
+                  padding: EdgeInsets.all(screenWidth * 0.04),
                   child: TextField(
                     controller: _epilepsyTypeController,
-                    decoration: _inputDecoration("Enter Epilepsy Type"),
+                    decoration: _inputDecoration("Enter Epilepsy Type", screenWidth),
                   ),
                 ),
-                SizedBox(height: 10),
+                SizedBox(height: screenHeight * 0.02),
                 Row(
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: [
@@ -233,25 +236,25 @@ class _SignUpPageState extends State<SignUpPage> {
                     Text('Female', style: TextStyle(fontSize: 16, color: Colors.white)),
                   ],
                 ),
-                SizedBox(height: 10),
+                SizedBox(height: screenHeight * 0.02),
                 Padding(
-                  padding: const EdgeInsets.all(16.0),
+                  padding: EdgeInsets.all(screenWidth * 0.04),
                   child: TextField(
                     onChanged: (value) {
                       setState(() {
                         _diagnosis = value;
                       });
                     },
-                    decoration: _inputDecoration("Enter Diagnosis"),
+                    decoration: _inputDecoration("Enter Diagnosis", screenWidth),
                   ),
                 ),
-                SizedBox(height: 20),
+                SizedBox(height: screenHeight * 0.03),
                 ElevatedButton(
                   onPressed: _handleSignUp,
                   style: ElevatedButton.styleFrom(
                     primary: Color(0xFFe8e0ed),
                     onPrimary: Color(0xFF9C27B0),
-                    padding: EdgeInsets.symmetric(horizontal: 40, vertical: 12),
+                    padding: EdgeInsets.symmetric(horizontal: screenWidth * 0.1, vertical: 12),
                     shape: RoundedRectangleBorder(
                       borderRadius: BorderRadius.circular(15),
                     ),
