@@ -6,6 +6,7 @@ import 'dart:io';
 
 import '../HomePage.dart';
 import '../Model/Patient.dart';
+import '../Repository/AuthRepository.dart';
 
 class SignUpPage extends StatefulWidget {
   @override
@@ -23,7 +24,7 @@ class _SignUpPageState extends State<SignUpPage> {
   String? _diagnosis;
   File? _image;
 
-  final FirebaseAuth _firebaseAuth = FirebaseAuth.instance;
+  final AuthRepository _authRepository = AuthRepository();
   final FirebaseFirestore _firestore = FirebaseFirestore.instance;
 
   InputDecoration _inputDecoration(String hintText, double screenWidth) {
@@ -78,13 +79,13 @@ class _SignUpPageState extends State<SignUpPage> {
     }
 
     try {
-      final UserCredential userCredential = await _firebaseAuth.createUserWithEmailAndPassword(
+      final user = await _authRepository.signUp(
         email: _emailController.text,
         password: _passwordController.text,
       );
 
-      if (userCredential.user != null) {
-        final String userId = userCredential.user!.uid;
+      if (user != null) {
+        final String userId = user.uid;
 
         final patient = Patient(
           id: userId,
