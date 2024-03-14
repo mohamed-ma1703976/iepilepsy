@@ -5,8 +5,8 @@ import 'package:image_picker/image_picker.dart';
 import 'dart:io';
 
 import '../HomePage.dart';
-import '../Model/Patient.dart';
-import '../Repository/AuthRepository.dart';
+import 'SignInPage.dart'; // Update this import based on your project structure
+// Ensure you have a Patient model or adjust according to your data structure
 
 class SignUpPage extends StatefulWidget {
   @override
@@ -18,16 +18,24 @@ class _SignUpPageState extends State<SignUpPage> {
   final TextEditingController _emailController = TextEditingController();
   final TextEditingController _passwordController = TextEditingController();
   final TextEditingController _confirmPasswordController = TextEditingController();
+  final TextEditingController _phoneController = TextEditingController();
   final TextEditingController _ageController = TextEditingController();
   final TextEditingController _epilepsyTypeController = TextEditingController();
+  final TextEditingController _specializationController = TextEditingController();
+  final TextEditingController _hospitalController = TextEditingController();
+  final TextEditingController _chronicDiseasesController = TextEditingController();
+  final TextEditingController _patientIdController = TextEditingController();
+
   String? _gender;
   String? _diagnosis;
   File? _image;
+  List<String> _userTypes = ['Patient', 'Doctor', 'Family Member'];
+  String? _selectedUserType;
 
-  final AuthRepository _authRepository = AuthRepository();
+  final FirebaseAuth _firebaseAuth = FirebaseAuth.instance;
   final FirebaseFirestore _firestore = FirebaseFirestore.instance;
 
-  InputDecoration _inputDecoration(String hintText, double screenWidth) {
+  InputDecoration _inputDecoration(String hintText) {
     return InputDecoration(
       hintText: hintText,
       hintStyle: TextStyle(color: Colors.white60),
@@ -61,15 +69,17 @@ class _SignUpPageState extends State<SignUpPage> {
   }
 
   Future<void> _handleSignUp() async {
+    // Basic validation including validation for Family Member
     if (_nameController.text.isEmpty ||
         _emailController.text.isEmpty ||
         _passwordController.text.isEmpty ||
         _confirmPasswordController.text.isEmpty ||
-        _ageController.text.isEmpty ||
-        _epilepsyTypeController.text.isEmpty ||
-        _gender == null ||
-        _diagnosis == null) {
-      _showErrorMessage("Please fill in all fields.");
+        _phoneController.text.isEmpty ||
+        _selectedUserType == null ||
+        (_selectedUserType == "Patient" && (_ageController.text.isEmpty || _epilepsyTypeController.text.isEmpty || _gender == null || _diagnosis == null)) ||
+        (_selectedUserType == "Doctor" && (_specializationController.text.isEmpty || _hospitalController.text.isEmpty)) ||
+        (_selectedUserType == "Family Member" && _patientIdController.text.isEmpty)) {
+      _showErrorMessage("Please fill in all required fields.");
       return;
     }
 
@@ -79,37 +89,47 @@ class _SignUpPageState extends State<SignUpPage> {
     }
 
     try {
-      final user = await _authRepository.signUp(
+      final UserCredential userCredential = await _firebaseAuth.createUserWithEmailAndPassword(
         email: _emailController.text,
         password: _passwordController.text,
       );
 
-      if (user != null) {
-        final String userId = user.uid;
+      if (userCredential.user != null) {
+        final String userId = userCredential.user!.uid;
 
-        final patient = Patient(
-          id: userId,
-          name: _nameController.text,
-          age: int.tryParse(_ageController.text) ?? 0,
-          diagnosis: _diagnosis!,
-          gender: _gender!,
-          epilepsyType: _epilepsyTypeController.text,
-          profileImage: _image != null ? _image!.path : '',
-        );
+        // Compose the user data based on the type
+        Map<String, dynamic> userData = {
+          'name': _nameController.text,
+          'email': _emailController.text,
+          'mobilePhone': _phoneController.text,
+          'userType': _selectedUserType,
+          'profileImage': _image != null ? _image!.path : '',
+        };
 
-        await _firestore.collection('patients').doc(userId).set({
-          'name': patient.name,
-          'age': patient.age,
-          'diagnosis': patient.diagnosis,
-          'gender': patient.gender,
-          'epilepsyType': patient.epilepsyType,
-          'profileImage': patient.profileImage,
-        });
+        if (_selectedUserType == "Patient") {
+          userData.addAll({
+            'age': int.tryParse(_ageController.text) ?? 0,
+            'gender': _gender!,
+            'epilepsyType': _epilepsyTypeController.text,
+            'chronicDiseases': _chronicDiseasesController.text, // Include chronic diseases
+          });
+        } else if (_selectedUserType == "Doctor") {
+          userData.addAll({
+            'specialization': _specializationController.text,
+            'hospital': _hospitalController.text,
+          });
+        }
+        if (_selectedUserType == "Family Member") {
+          userData.addAll({
+            'patientId' : _patientIdController.text,
+          });
+        }
+        await _firestore.collection('users').doc(userId).set(userData);
 
         Navigator.pushReplacement(
           context,
           MaterialPageRoute(
-            builder: (context) => HomePage(patientId: userId),
+            builder: (context) => SignInPage(), // Adjust this to your project's navigation flow
           ),
         );
       }
@@ -136,9 +156,6 @@ class _SignUpPageState extends State<SignUpPage> {
 
   @override
   Widget build(BuildContext context) {
-    double screenWidth = MediaQuery.of(context).size.width;
-    double screenHeight = MediaQuery.of(context).size.height;
-
     return Scaffold(
       body: Container(
         color: Color(0xFFd1baf8),
@@ -151,111 +168,33 @@ class _SignUpPageState extends State<SignUpPage> {
                   onTap: _selectImage,
                   child: _image == null
                       ? CircleAvatar(
-                    radius: screenWidth * 0.12,
+                    radius: 50,
                     backgroundImage: AssetImage('assets/default_avatar.jpg'),
                   )
                       : CircleAvatar(
-                    radius: screenWidth * 0.12,
+                    radius: 50,
                     backgroundImage: FileImage(_image!),
                   ),
                 ),
-                SizedBox(height: screenHeight * 0.02),
+                SizedBox(height: 10),
                 TextButton(
                   onPressed: _selectImage,
                   child: Text('Select Profile Picture', style: TextStyle(color: Colors.white)),
                 ),
-                SizedBox(height: screenHeight * 0.03),
-                Padding(
-                  padding: EdgeInsets.all(screenWidth * 0.04),
-                  child: TextField(
-                    controller: _nameController,
-                    decoration: _inputDecoration("Enter Name", screenWidth),
-                  ),
-                ),
-                Padding(
-                  padding: EdgeInsets.all(screenWidth * 0.04),
-                  child: TextField(
-                    controller: _emailController,
-                    decoration: _inputDecoration("Enter Email", screenWidth),
-                  ),
-                ),
-                Padding(
-                  padding: EdgeInsets.all(screenWidth * 0.04),
-                  child: TextField(
-                    controller: _passwordController,
-                    obscureText: true,
-                    decoration: _inputDecoration("Enter Password", screenWidth),
-                  ),
-                ),
-                Padding(
-                  padding: EdgeInsets.all(screenWidth * 0.04),
-                  child: TextField(
-                    controller: _confirmPasswordController,
-                    obscureText: true,
-                    decoration: _inputDecoration("Confirm Password", screenWidth),
-                  ),
-                ),
-                Padding(
-                  padding: EdgeInsets.all(screenWidth * 0.04),
-                  child: TextField(
-                    controller: _ageController,
-                    keyboardType: TextInputType.number,
-                    decoration: _inputDecoration("Enter Age", screenWidth),
-                  ),
-                ),
-                Padding(
-                  padding: EdgeInsets.all(screenWidth * 0.04),
-                  child: TextField(
-                    controller: _epilepsyTypeController,
-                    decoration: _inputDecoration("Enter Epilepsy Type", screenWidth),
-                  ),
-                ),
-                SizedBox(height: screenHeight * 0.02),
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    Text('Gender: ', style: TextStyle(fontSize: 16, color: Colors.white)),
-                    Radio(
-                      value: 'Male',
-                      groupValue: _gender,
-                      onChanged: (value) {
-                        setState(() {
-                          _gender = value.toString();
-                        });
-                      },
-                    ),
-                    Text('Male', style: TextStyle(fontSize: 16, color: Colors.white)),
-                    Radio(
-                      value: 'Female',
-                      groupValue: _gender,
-                      onChanged: (value) {
-                        setState(() {
-                          _gender = value.toString();
-                        });
-                      },
-                    ),
-                    Text('Female', style: TextStyle(fontSize: 16, color: Colors.white)),
-                  ],
-                ),
-                SizedBox(height: screenHeight * 0.02),
-                Padding(
-                  padding: EdgeInsets.all(screenWidth * 0.04),
-                  child: TextField(
-                    onChanged: (value) {
-                      setState(() {
-                        _diagnosis = value;
-                      });
-                    },
-                    decoration: _inputDecoration("Enter Diagnosis", screenWidth),
-                  ),
-                ),
-                SizedBox(height: screenHeight * 0.03),
+                SizedBox(height: 20),
+                ..._buildTextFields(),
+                _buildUserTypeDropdown(),
+                if (_selectedUserType == "Patient") ..._buildPatientSpecificFields(),
+                if (_selectedUserType == "Doctor") ..._buildDoctorSpecificFields(),
+                if (_selectedUserType == "Family Member") ..._buildFamilyMemberSpecificFields(),
+
+                SizedBox(height: 20),
                 ElevatedButton(
                   onPressed: _handleSignUp,
                   style: ElevatedButton.styleFrom(
                     primary: Color(0xFFe8e0ed),
                     onPrimary: Color(0xFF9C27B0),
-                    padding: EdgeInsets.symmetric(horizontal: screenWidth * 0.1, vertical: 12),
+                    padding: EdgeInsets.symmetric(horizontal: 40, vertical: 12),
                     shape: RoundedRectangleBorder(
                       borderRadius: BorderRadius.circular(15),
                     ),
@@ -270,14 +209,162 @@ class _SignUpPageState extends State<SignUpPage> {
     );
   }
 
+  List<Widget> _buildTextFields() {
+    return [
+      Padding(
+        padding: const EdgeInsets.all(16.0),
+        child: TextField(
+          controller: _nameController,
+          decoration: _inputDecoration("Enter Name"),
+        ),
+      ),
+      Padding(
+        padding: const EdgeInsets.all(16.0),
+        child: TextField(
+          controller: _emailController,
+          decoration: _inputDecoration("Enter Email"),
+        ),
+      ),
+      Padding(
+        padding: const EdgeInsets.all(16.0),
+        child: TextField(
+          controller: _passwordController,
+          obscureText: true,
+          decoration: _inputDecoration("Enter Password"),
+        ),
+      ),
+      Padding(
+        padding: const EdgeInsets.all(16.0),
+        child: TextField(
+          controller: _confirmPasswordController,
+          obscureText: true,
+          decoration: _inputDecoration("Confirm Password"),
+        ),
+      ),
+      Padding(
+        padding: const EdgeInsets.all(16.0),
+        child: TextField(
+          controller: _phoneController,
+          keyboardType: TextInputType.phone,
+          decoration: _inputDecoration("Enter Mobile Phone"),
+        ),
+      ),
+    ];
+  }
+
+  Widget _buildUserTypeDropdown() {
+    return Padding(
+      padding: const EdgeInsets.all(16.0),
+      child: DropdownButtonFormField<String>(
+        decoration: _inputDecoration("Select User Type"),
+        value: _selectedUserType,
+        items: _userTypes.map<DropdownMenuItem<String>>((String value) {
+          return DropdownMenuItem<String>(
+            value: value,
+            child: Text(value),
+          );
+        }).toList(),
+        onChanged: (String? newValue) {
+          setState(() {
+            _selectedUserType = newValue;
+          });
+        },
+        hint: Text('User Type'),
+      ),
+    );
+  }
+
+  List<Widget> _buildPatientSpecificFields() {
+    return [
+      Padding(
+        padding: const EdgeInsets.all(16.0),
+        child: TextField(
+          controller: _ageController,
+          keyboardType: TextInputType.number,
+          decoration: _inputDecoration("Enter Age"),
+        ),
+      ),
+      Padding(
+        padding: const EdgeInsets.all(16.0),
+        child: TextField(
+          controller: _epilepsyTypeController,
+          decoration: _inputDecoration("Enter Epilepsy Type"),
+        ),
+      ),
+      Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 16.0),
+        child: DropdownButtonFormField<String>(
+          decoration: _inputDecoration("Select Gender"),
+          value: _gender,
+          items: <String>['Male', 'Female', 'Other'].map<DropdownMenuItem<String>>((String value) {
+            return DropdownMenuItem<String>(
+              value: value,
+              child: Text(value),
+            );
+          }).toList(),
+          onChanged: (String? newValue) {
+            setState(() {
+              _gender = newValue;
+            });
+          },
+          hint: Text('Gender'),
+        ),
+      ),
+      Padding(
+        padding: const EdgeInsets.all(16.0),
+        child: TextField(
+          controller: _chronicDiseasesController,
+          decoration: _inputDecoration("Enter Chronic Diseases"),
+          maxLines: null,
+        ),
+      ),
+      // You can add more patient-specific fields here if needed
+    ];
+  }
+
+  List<Widget> _buildDoctorSpecificFields() {
+    return [
+      Padding(
+        padding: const EdgeInsets.all(16.0),
+        child: TextField(
+          controller: _specializationController,
+          decoration: _inputDecoration("Enter Specialization"),
+        ),
+      ),
+      Padding(
+        padding: const EdgeInsets.all(16.0),
+        child: TextField(
+          controller: _hospitalController,
+          decoration: _inputDecoration("Enter Hospital"),
+        ),
+      ),
+      // Add more doctor-specific fields here if needed
+    ];
+  }
+  List<Widget> _buildFamilyMemberSpecificFields() {
+    return [
+      Padding(
+        padding: const EdgeInsets.all(16.0),
+        child: TextField(
+          controller: _patientIdController,
+          decoration: _inputDecoration("Enter Patient ID"),
+        ),
+      ),
+      // Add more family member-specific fields here if needed
+    ];
+  }
+
   @override
   void dispose() {
     _nameController.dispose();
     _emailController.dispose();
     _passwordController.dispose();
     _confirmPasswordController.dispose();
+    _phoneController.dispose();
     _ageController.dispose();
     _epilepsyTypeController.dispose();
+    _specializationController.dispose();
+    _hospitalController.dispose();
     super.dispose();
   }
 }

@@ -17,20 +17,25 @@ class AuthRepository {
     }
   }
 
-  // Sign in with email and password
-  Future<User?> signIn({required String email, required String password}) async {
+// Sign in with email and password
+  Future<UserCredential> signIn({required String email, required String password}) async {
     try {
       final UserCredential userCredential = await _firebaseAuth.signInWithEmailAndPassword(
         email: email,
         password: password,
       );
-      return userCredential.user;
-    } catch (e) {
-      // Handle error, show error messages, etc.
+      return userCredential; // Return the UserCredential object
+    } on FirebaseAuthException catch (e) {
+      // Handle FirebaseAuth exception e.g. wrong password, user not found etc.
       print(e);
-      return null;
+      throw e; // Rethrow the FirebaseAuthException
+    } catch (e) {
+      // Handle any other errors
+      print(e);
+      throw Exception('An error occurred during sign in.');
     }
   }
+
 
   // Sign out
   Future<void> signOut() async {

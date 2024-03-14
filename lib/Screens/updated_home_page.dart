@@ -236,10 +236,6 @@ class CurrentReadingsBox extends StatelessWidget {
       'title': 'Number of Blinks',
       'value': '15 per minute',
     },
-    {
-      'title': 'Heart Rate',
-      'value': '70 bpm',
-    },
   ];
 
   @override
