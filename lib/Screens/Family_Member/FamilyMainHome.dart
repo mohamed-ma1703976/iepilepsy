@@ -1,12 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:curved_navigation_bar/curved_navigation_bar.dart';
-
 import '../../Model/Patient.dart';
 import 'FamilyHomePage.dart';
 import 'PatientProfilePage.dart';
 import 'FamilyNotificationsPage.dart';
 import 'SettingsPage.dart';
-// Import other pages and utilities as before
 
 class FamilyMainHome extends StatefulWidget {
   @override
@@ -26,7 +24,7 @@ class _FamilyMainHomeState extends State<FamilyMainHome> {
       FamilyHomePage(patient: mockPatient), // Pass the mock data here
       PatientProfilePage(),
       FamilyNotificationsPage(),
-      SettingsPage(),
+      HelpPage(),
     ];
   }
 
@@ -53,7 +51,7 @@ class _FamilyMainHomeState extends State<FamilyMainHome> {
           Icon(Icons.home, size: 30, color: Color(0xFFd1baf8)), // Matching icon color
           Icon(Icons.person, size: 30, color: Color(0xFFd1baf8)),
           Icon(Icons.notifications, size: 30, color: Color(0xFFd1baf8)),
-          Icon(Icons.settings, size: 30, color: Color(0xFFd1baf8)),
+          Icon(Icons.chat_outlined, size: 30, color: Color(0xFFd1baf8)),
         ],
         onTap: (index) {
           setState(() {

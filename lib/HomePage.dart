@@ -27,7 +27,7 @@ class _HomePageState extends State<HomePage> {
       UpdatedHomePage(),
       PatientInfoPage(patientId: widget.patientId), // Updated to pass patientId
       CasesPage(),
-      UpdatesPage(),
+      SensorDataPage(),
       EmergencyNumbersPage(),
     ];
   }
@@ -54,7 +54,7 @@ class _HomePageState extends State<HomePage> {
         items: <Widget>[
           Icon(Icons.home, size: 30, color: Color(0xFFd1baf8),), // Updated icon color
           Icon(Icons.person, size: 30, color: Color(0xFFd1baf8),), // Updated icon color
-          Icon(Icons.assignment, size: 30, color: Color(0xFFd1baf8),), // Updated icon color
+          Icon(Icons.chat, size: 30, color: Color(0xFFd1baf8),), // Updated icon color
           Icon(Icons.update, size: 30,color: Color(0xFFd1baf8),), // Updated icon color
           Icon(Icons.phone, size: 30,color: Color(0xFFd1baf8),), // Updated icon color
         ],

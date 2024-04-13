@@ -23,12 +23,33 @@ class _PatientProfilePageState extends State<PatientProfilePage> {
   Future<void> _fetchPatientProfile() async {
     User? user = _firebaseAuth.currentUser;
     if (user != null) {
-      DocumentSnapshot docSnapshot = await _firestore.collection('users').doc(user.uid).get();
-      setState(() {
-        patientProfile = docSnapshot.data() as Map<String, dynamic>?;
-      });
+      // Assuming you're storing the family member's type in their profile
+      DocumentSnapshot userProfile = await _firestore.collection('users').doc(user.uid).get();
+      Map<String, dynamic>? userProfileData = userProfile.data() as Map<String, dynamic>?;
+
+      // Check if the user is a 'Family Member'
+      if (userProfileData != null && userProfileData['userType'] == 'Family Member') {
+        // Fetch the family-patient relationship to get the patientId
+        DocumentSnapshot familyPatientDoc = await _firestore.collection('FamilyPatient').doc(user.uid).get();
+        Map<String, dynamic>? familyPatientData = familyPatientDoc.data() as Map<String, dynamic>?;
+
+        if (familyPatientData != null && familyPatientData.containsKey('patientId')) {
+          String patientId = familyPatientData['patientId'];
+          // Fetch the patient profile using the patientId
+          DocumentSnapshot patientProfileDoc = await _firestore.collection('users').doc(patientId).get();
+          setState(() {
+            patientProfile = patientProfileDoc.data() as Map<String, dynamic>?;
+          });
+        }
+      } else {
+        // If the user is not a 'Family Member', fetch the profile directly as before
+        setState(() {
+          patientProfile = userProfileData;
+        });
+      }
     }
   }
+
 
   @override
   Widget build(BuildContext context) {
@@ -46,7 +67,7 @@ class _PatientProfilePageState extends State<PatientProfilePage> {
             SizedBox(height: 20),
             CircleAvatar(
               radius: 60,
-              backgroundImage: patientProfile!['profileImage'] != null
+              backgroundImage: patientProfile!['profileImage'] != null && File(patientProfile!['profileImage']).existsSync()
                   ? FileImage(File(patientProfile!['profileImage']))
                   : AssetImage('assets/default_avatar.jpg') as ImageProvider,
               backgroundColor: Colors.white,

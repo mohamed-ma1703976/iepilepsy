@@ -22,22 +22,37 @@ class Patient {
   factory Patient.fromFirestore(DocumentSnapshot doc) {
     Map<String, dynamic> data = doc.data() as Map<String, dynamic>;
     return Patient(
-      id: doc.id,
+      id: doc.id, // Use doc.id to get the document ID
       name: data['name'] ?? '',
       age: data['age'] ?? 0,
       diagnosis: data['diagnosis'] ?? '',
-      gender: data['gender'] ?? 'Male',
+      gender: data['gender'] ?? '',
       epilepsyType: data['epilepsyType'] ?? '',
       profileImage: data['profileImage'] ?? '',
     );
   }
-
-  // Function to fetch a specific patient's data from Firestore based on user ID
-  static Future<Patient?> fetchPatient(String userId) async {
+// Add this method to your Patient class
+  Map<String, dynamic> toMap() {
+    return {
+      'id': id,
+      'name': name,
+      'age': age,
+      'diagnosis': diagnosis,
+      'gender': gender,
+      'epilepsyType': epilepsyType,
+      'profileImage': profileImage,
+    };
+  }
+  static Future<Patient?> fetchPatientByUserId(String userId) async {
     try {
-      DocumentSnapshot docSnapshot = await FirebaseFirestore.instance.collection('patients').doc(userId).get();
-      if (docSnapshot.exists) {
-        return Patient.fromFirestore(docSnapshot);
+      QuerySnapshot querySnapshot = await FirebaseFirestore.instance
+          .collection('users')
+          .where('userId', isEqualTo: userId)
+          .limit(1)
+          .get();
+
+      if (querySnapshot.docs.isNotEmpty) {
+        return Patient.fromFirestore(querySnapshot.docs.first);
       }
       return null;
     } catch (e) {

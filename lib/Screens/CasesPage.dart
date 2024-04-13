@@ -1,5 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_staggered_animations/flutter_staggered_animations.dart';
+import 'package:clay_containers/clay_containers.dart';
+import 'package:eva_icons_flutter/eva_icons_flutter.dart';
+import 'package:google_generative_ai/google_generative_ai.dart';
+import '../model/message.dart';  // Ensure your model is correctly configured
 
 class CasesPage extends StatefulWidget {
   @override
@@ -7,106 +11,222 @@ class CasesPage extends StatefulWidget {
 }
 
 class _CasesPageState extends State<CasesPage> {
-  final List<Map<String, dynamic>> seizures = [
-    {
-      'type': 'Tonic-clonic Seizures',
-      'duration': 'More than 5 minutes',
-      'description': 'Known formerly as "grand mal" seizures, these involve a loss of consciousness and violent muscle contractions.',
-      'effects': 'May result in fatigue and confusion post-seizure.',
-    },
-    {
-      'type': 'Absence Seizures',
-      'duration': 'Less than 2',
-      'description': 'Known formerly as "petit mal" seizures, characterized by a brief, sudden lapse in consciousness.',
-      'effects': 'Person appears to stare blankly and does not remember the episode.',
-    },
-    {
-      'type': 'Atonic Seizures',
-      'duration': 'Less than 2 minutes',
-      'description': 'Causes a loss of muscle control, which may cause the person to collapse.',
-      'effects': 'Risk of injury from falling.',
-    },
-    {
-      'type': 'Clonic Seizures',
-      'duration': '2-5 minutes',
-      'description': 'Characterized by repeated jerking muscle movements.',
-      'effects': 'Usually affect the neck, face, and arms.',
-    },
-    {
-      'type': 'Tonic Seizures',
-      'duration': '2-5 minutes',
-      'description': 'Cause stiffening of the muscles.',
-      'effects': 'Usually affects the back, arms, and legs and may result in a fall.',
-    },
-    {
-      'type': 'Myoclonic Seizures',
-      'duration': 'More than 5 minutes',
-      'description': 'Involve sudden brief jerks or twitches of muscles.',
-      'effects': 'Can make the person drop objects.',
-    },
+  List<ChatMessage> messages = [];
+  final TextEditingController _controller = TextEditingController();
+  late final GenerativeModel _model;  // Google Generative AI model
+  bool _isLoading = false;
+  bool _showSuggestions = true;  // Controls visibility of suggestion chips
+  List<String> epilepsyQuestions = [
+    "What triggers an epilepsy seizure?",
+    "What are the treatments for epilepsy?",
+    "How is epilepsy diagnosed?",
+    "Can you live a normal life with epilepsy?",
+    "What first aid should I provide for a seizure?"
   ];
 
-  IconData getIconBasedOnDuration(String duration) {
-    if (duration.startsWith('Less than 2')) return Icons.linear_scale; // weak
-    if (duration.startsWith('2-5')) return Icons.waves; // normal
-    return Icons.electric_bolt_outlined; // strong
+  @override
+  void initState() {
+    super.initState();
+    _model = GenerativeModel(model: 'gemini-pro', apiKey: 'AIzaSyCAByXWEeKW4o12Y16h_Qet1tQOK_0wGc0');
+    messages.add(ChatMessage(
+      text: 'Hello! I am Ai Assistant here to help you.',
+      type: MessageType.received,
+    ));
+  }
+
+  void _sendMessage(String text) {
+    setState(() {
+      messages.add(ChatMessage(text: text, type: MessageType.sent));
+      _isLoading = true;
+      _showSuggestions = false;  // Hide suggestions when a message is sent
+    });
+    _processMessage(text);
+  }
+  void handleEpilepsyQuestion(String question) {
+    // Setting loading state
+    setState(() {
+      _isLoading = true;
+    });
+
+    // Call the model to generate an answer for the epilepsy question
+    _model.generateContent([Content.text(question)]).then((response) {
+      final responseText = response.text ?? "I couldn't find any detailed information on that topic.";
+      setState(() {
+        messages.add(ChatMessage(text: responseText, type: MessageType.received));
+        _isLoading = false;  // Stop the loading state
+      });
+    }).catchError((error) {
+      setState(() {
+        messages.add(ChatMessage(text: "Sorry, there was a problem fetching the information.", type: MessageType.received));
+        _isLoading = false;  // Stop the loading state
+        debugPrint('Error fetching response: $error');
+      });
+    });
+  }
+
+  void _processMessage(String text) {
+    if (epilepsyQuestions.contains(text)) {
+      handleEpilepsyQuestion(text);
+    } else {
+      _model.generateContent([Content.text(text)]).then((response) {
+        final responseText = response.text ?? "I couldn't find anything on that topic.";
+        setState(() {
+          messages.add(ChatMessage(text: responseText, type: MessageType.received));
+          _isLoading = false;
+        });
+      }).catchError((error) {
+        setState(() {
+          messages.add(ChatMessage(
+              text: "Sorry, there was a problem fetching the information.",
+              type: MessageType.received
+          ));
+          _isLoading = false;
+          debugPrint('Error fetching response: $error');
+        });
+      });
+    }
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      body: LayoutBuilder(
-        builder: (BuildContext context, BoxConstraints constraints) {
-          return Container(
-            color: Color(0xFFd1baf8),
+      body: SafeArea(
+        child: Container(
+          color: Colors.grey[100],
+          child: Padding(
+            padding: const EdgeInsets.all(16.0),
+            child: Column(
+              children: [
+                _showSuggestions ? _buildSuggestionArea() : Container(),
+                _buildMessageList(),
+                _buildInputArea(),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildMessageList() {
+    return Expanded(
+      child: AnimationLimiter(
+        child: ListView.builder(
+          itemCount: messages.length,
+          itemBuilder: (context, index) {
+            final message = messages[index];
+            return _buildMessageItem(message, index);
+          },
+        ),
+      ),
+    );
+  }
+
+  Widget _buildMessageItem(ChatMessage message, int index) {
+    bool isSent = message.type == MessageType.sent;
+    return AnimationConfiguration.staggeredList(
+      position: index,
+      child: SlideAnimation(
+        verticalOffset: 50.0,
+        child: FadeInAnimation(
+          child: ClayContainer(
+            borderRadius: 20,
+            depth: 12,
+            spread: 5,
+            color: isSent ? Colors.deepPurple[300] : Colors.deepPurple[100],
             child: Padding(
-              padding: const EdgeInsets.all(12.0),
-              child: SingleChildScrollView(
-                child: ConstrainedBox(
-                  constraints: BoxConstraints(minHeight: constraints.maxHeight),
-                  child: AnimationLimiter(
-                    child: ListView.builder(
-                      shrinkWrap: true,
-                      physics: NeverScrollableScrollPhysics(),
-                      itemCount: seizures.length,
-                      itemBuilder: (context, index) {
-                        final item = seizures[index];
-                        final icon = getIconBasedOnDuration(item['duration']);
-                        return AnimationConfiguration.staggeredList(
-                          position: index,
-                          duration: const Duration(milliseconds: 375),
-                          child: SlideAnimation(
-                            verticalOffset: 50.0,
-                            child: FadeInAnimation(
-                              child: Card(
-                                margin: EdgeInsets.symmetric(vertical: 8),
-                                child: ListTile(
-                                  contentPadding: EdgeInsets.symmetric(horizontal: 20, vertical: 10),
-                                  leading: Icon(icon, color: Color(0xFF9C27B0)),
-                                  title: Text(item['type'], style: TextStyle(color: Color(0xFF9C27B0))),
-                                  subtitle: Column(
-                                    crossAxisAlignment: CrossAxisAlignment.start,
-                                    children: [
-                                      Text('Duration: ${item['duration']}', style: TextStyle(color: Color(0xFF9C27B0))),
-                                      SizedBox(height: 4),
-                                      Text(item['description'], style: TextStyle(color: Color(0xFF9C27B0))),
-                                      SizedBox(height: 4),
-                                      Text('Effects: ${item['effects']}', style: TextStyle(color: Color(0xFF9C27B0))),
-                                    ],
-                                  ),
-                                ),
-                              ),
-                            ),
-                          ),
-                        );
-                      },
+              padding: const EdgeInsets.symmetric(horizontal: 12.0, vertical: 8.0),
+              child: Row(
+                mainAxisAlignment: isSent ? MainAxisAlignment.end : MainAxisAlignment.start,
+                children: [
+                  if (!isSent)
+                    CircleAvatar(
+                      backgroundColor: Colors.white,
+                      child: Icon(EvaIcons.personOutline, color: Colors.deepPurple),
+                    ),
+                  SizedBox(width: 8),
+                  Flexible(
+                    child: Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 12.0),
+                      decoration: BoxDecoration(
+                        color: isSent ? Colors.deepPurple : Colors.deepPurple[50],
+                        borderRadius: BorderRadius.circular(15),
+                      ),
+                      child: Text(
+                        message.text,
+                        style: TextStyle(color: Colors.purple),  // Using default system font
+                      ),
                     ),
                   ),
-                ),
+                ],
               ),
             ),
-          );
-        },
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildInputArea() {
+    return ClayContainer(
+      borderRadius: 25,
+      depth: 12,
+      spread: 5,
+      color: Colors.deepPurple[100],
+      child: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 8.0),
+        child: Row(
+          children: [
+            Expanded(
+              child: TextField(
+                controller: _controller,
+                decoration: InputDecoration(
+                  hintText: 'Send a message',
+                  border: InputBorder.none,
+                  hintStyle: TextStyle(color: Colors.purple.withOpacity(0.8)),
+                ),
+                style: TextStyle(color: Colors.purple),  // Default font style
+                onSubmitted: (value) {
+                  if (value.isNotEmpty) {
+                    _sendMessage(value);
+                    _controller.clear();
+                  }
+                },
+              ),
+            ),
+            IconButton(
+              icon: Icon(EvaIcons.paperPlaneOutline, color: Colors.purple),
+              onPressed: () {
+                if (_controller.text.isNotEmpty) {
+                  _sendMessage(_controller.text);
+                  _controller.clear();
+                }
+              },
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildSuggestionArea() {
+    return SingleChildScrollView(
+      scrollDirection: Axis.horizontal,
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+        children: epilepsyQuestions.map((question) => Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 4.0),
+          child: ActionChip(
+            label: Text(question, style: TextStyle(color: Colors.white)),  // Default font style
+            backgroundColor: Colors.deepPurple[300],
+            onPressed: () {
+              _sendMessage(question);
+              setState(() {
+                _showSuggestions = false;
+              });
+            },
+          ),
+        )).toList(),
       ),
     );
   }

@@ -1,12 +1,13 @@
+import 'dart:io';
+import 'dart:math';
+
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:image_picker/image_picker.dart';
-import 'dart:io';
 
-import '../HomePage.dart';
-import 'SignInPage.dart'; // Update this import based on your project structure
-// Ensure you have a Patient model or adjust according to your data structure
+import 'SignInPage.dart'; // Update this import based on your project's structure
+import 'PatientInfoPage.dart'; // Assuming you have a PatientInfoPage
 
 class SignUpPage extends StatefulWidget {
   @override
@@ -21,13 +22,12 @@ class _SignUpPageState extends State<SignUpPage> {
   final TextEditingController _phoneController = TextEditingController();
   final TextEditingController _ageController = TextEditingController();
   final TextEditingController _epilepsyTypeController = TextEditingController();
+  final TextEditingController _chronicDiseasesController = TextEditingController();
   final TextEditingController _specializationController = TextEditingController();
   final TextEditingController _hospitalController = TextEditingController();
-  final TextEditingController _chronicDiseasesController = TextEditingController();
   final TextEditingController _patientIdController = TextEditingController();
 
   String? _gender;
-  String? _diagnosis;
   File? _image;
   List<String> _userTypes = ['Patient', 'Doctor', 'Family Member'];
   String? _selectedUserType;
@@ -68,16 +68,32 @@ class _SignUpPageState extends State<SignUpPage> {
     }
   }
 
+  Future<String> _generateUniqueUserId() async {
+    final Random random = Random();
+    String uniqueUserId;
+    bool exists;
+    do {
+      final int randomNumber = random.nextInt(100000000 - 10000) + 10000;
+      uniqueUserId = randomNumber.toString();
+      final existingUserDoc = await _firestore.collection('users').doc(uniqueUserId).get();
+      exists = existingUserDoc.exists;
+    } while (exists);
+    return uniqueUserId;
+  }
+
   Future<void> _handleSignUp() async {
-    // Basic validation including validation for Family Member
     if (_nameController.text.isEmpty ||
         _emailController.text.isEmpty ||
         _passwordController.text.isEmpty ||
         _confirmPasswordController.text.isEmpty ||
         _phoneController.text.isEmpty ||
         _selectedUserType == null ||
-        (_selectedUserType == "Patient" && (_ageController.text.isEmpty || _epilepsyTypeController.text.isEmpty || _gender == null || _diagnosis == null)) ||
-        (_selectedUserType == "Doctor" && (_specializationController.text.isEmpty || _hospitalController.text.isEmpty)) ||
+        (_selectedUserType == "Patient" &&
+            (_ageController.text.isEmpty ||
+                _epilepsyTypeController.text.isEmpty ||
+                _gender == null)) ||
+        (_selectedUserType == "Doctor" &&
+            (_specializationController.text.isEmpty || _hospitalController.text.isEmpty)) ||
         (_selectedUserType == "Family Member" && _patientIdController.text.isEmpty)) {
       _showErrorMessage("Please fill in all required fields.");
       return;
@@ -89,16 +105,17 @@ class _SignUpPageState extends State<SignUpPage> {
     }
 
     try {
+      // Attempt to create a user with email and password
       final UserCredential userCredential = await _firebaseAuth.createUserWithEmailAndPassword(
         email: _emailController.text,
         password: _passwordController.text,
       );
 
       if (userCredential.user != null) {
-        final String userId = userCredential.user!.uid;
+        final String userId = userCredential.user!.uid; // Using UID as the user's ID
 
-        // Compose the user data based on the type
         Map<String, dynamic> userData = {
+          'userId': userId,
           'name': _nameController.text,
           'email': _emailController.text,
           'mobilePhone': _phoneController.text,
@@ -111,7 +128,7 @@ class _SignUpPageState extends State<SignUpPage> {
             'age': int.tryParse(_ageController.text) ?? 0,
             'gender': _gender!,
             'epilepsyType': _epilepsyTypeController.text,
-            'chronicDiseases': _chronicDiseasesController.text, // Include chronic diseases
+            'chronicDiseases': _chronicDiseasesController.text,
           });
         } else if (_selectedUserType == "Doctor") {
           userData.addAll({
@@ -119,22 +136,37 @@ class _SignUpPageState extends State<SignUpPage> {
             'hospital': _hospitalController.text,
           });
         }
-        if (_selectedUserType == "Family Member") {
-          userData.addAll({
-            'patientId' : _patientIdController.text,
-          });
-        }
-        await _firestore.collection('users').doc(userId).set(userData);
 
-        Navigator.pushReplacement(
-          context,
-          MaterialPageRoute(
-            builder: (context) => SignInPage(), // Adjust this to your project's navigation flow
-          ),
-        );
+        // Handling for Family Member user type
+        if (_selectedUserType == "Family Member") {
+          DocumentSnapshot patientSnapshot = await _firestore.collection('users').doc(_patientIdController.text).get();
+
+          if (patientSnapshot.exists) {
+            // Assuming patient's data structure allows direct copying
+            Map<String, dynamic> patientData = patientSnapshot.data() as Map<String, dynamic>;
+
+            // Save Family Member user data
+            await _firestore.collection('users').doc(userId).set(userData);
+
+            // Save related patient data under FamilyPatient for this Family Member
+            await _firestore.collection('FamilyPatient').doc(userId).set({
+              'patientId': _patientIdController.text,
+              'patientData': patientData, // Optionally adjust data structure here
+            });
+
+            Navigator.pushReplacement(context, MaterialPageRoute(builder: (context) => SignInPage()));
+          } else {
+            _showErrorMessage("Invalid patient ID. Please check and try again.");
+            return;
+          }
+        } else {
+          // Save non-Family Member user data
+          await _firestore.collection('users').doc(userId).set(userData);
+          Navigator.pushReplacement(context, MaterialPageRoute(builder: (context) => SignInPage()));
+        }
       }
     } catch (e) {
-      _showErrorMessage("Error signing up. Please try again.");
+      _showErrorMessage("Error signing up. Please try again. Error: $e");
     }
   }
 
@@ -318,7 +350,6 @@ class _SignUpPageState extends State<SignUpPage> {
           maxLines: null,
         ),
       ),
-      // You can add more patient-specific fields here if needed
     ];
   }
 
@@ -338,9 +369,9 @@ class _SignUpPageState extends State<SignUpPage> {
           decoration: _inputDecoration("Enter Hospital"),
         ),
       ),
-      // Add more doctor-specific fields here if needed
     ];
   }
+
   List<Widget> _buildFamilyMemberSpecificFields() {
     return [
       Padding(
@@ -350,12 +381,12 @@ class _SignUpPageState extends State<SignUpPage> {
           decoration: _inputDecoration("Enter Patient ID"),
         ),
       ),
-      // Add more family member-specific fields here if needed
     ];
   }
 
   @override
   void dispose() {
+    // Dispose controllers
     _nameController.dispose();
     _emailController.dispose();
     _passwordController.dispose();
@@ -363,8 +394,10 @@ class _SignUpPageState extends State<SignUpPage> {
     _phoneController.dispose();
     _ageController.dispose();
     _epilepsyTypeController.dispose();
+    _chronicDiseasesController.dispose();
     _specializationController.dispose();
     _hospitalController.dispose();
+    _patientIdController.dispose();
     super.dispose();
   }
 }

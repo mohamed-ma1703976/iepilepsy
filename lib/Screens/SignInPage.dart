@@ -65,23 +65,43 @@ class _SignInPageState extends State<SignInPage> with SingleTickerProviderStateM
         password: _passwordController.text,
       );
 
-      // Fetch user details from Firestore
-      final userDoc = await FirebaseFirestore.instance.collection('users').doc(userCredential.user!.uid).get();
-      final userType = userDoc.data()?['userType'];
+      // Ensure a user is actually signed in
+      if (userCredential.user == null) {
+        _showErrorMessage("Sign in failed, please try again.");
+        return;
+      }
 
-      // Navigate based on user type
+      // Fetch user details from Firestore using the email provided to sign in
+      QuerySnapshot userQuerySnapshot = await FirebaseFirestore.instance
+          .collection('users')
+          .where('email', isEqualTo: _emailController.text.trim()) // using email to fetch details
+          .limit(1)
+          .get();
+
+      if (userQuerySnapshot.docs.isEmpty) {
+        _showErrorMessage("User details not found.");
+        return;
+      }
+
+      DocumentSnapshot userDoc = userQuerySnapshot.docs.first;
+      final userType = userDoc['userType'];
+
+      // Extract the custom userId you generated at sign-up
+      final customUserId = userDoc['userId'];
+
+      // Navigation based on userType
       if (userType == "Doctor") {
         Navigator.of(context).pushReplacement(
           MaterialPageRoute(builder: (context) => DoctorMainHome()),
         );
       } else if (userType == "Family Member") {
-        // Assume FamilyMainHome is correctly implemented and imported
         Navigator.of(context).pushReplacement(
-          MaterialPageRoute(builder: (context) => FamilyMainHome()), // Replace with actual navigation to FamilyMainHome
+          MaterialPageRoute(builder: (context) => FamilyMainHome()),
         );
       } else {
+        // For 'Patient' or any other userType
         Navigator.of(context).pushReplacement(
-          MaterialPageRoute(builder: (context) => HomePage(patientId: userCredential.user!.uid)), // Adjust as necessary
+          MaterialPageRoute(builder: (context) => HomePage(patientId: customUserId)), // Use the custom userId
         );
       }
     } on FirebaseAuthException catch (e) {
@@ -90,6 +110,7 @@ class _SignInPageState extends State<SignInPage> with SingleTickerProviderStateM
       _showErrorMessage("An unknown error occurred.");
     }
   }
+
 
 
   void _showErrorMessage(String message) {

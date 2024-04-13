@@ -1,13 +1,42 @@
 import 'dart:async';
 
+import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:firebase_auth/firebase_auth.dart';
+import 'package:firebase_database/firebase_database.dart';
 import 'package:flutter/material.dart';
 import 'package:clay_containers/clay_containers.dart';
 import 'package:eva_icons_flutter/eva_icons_flutter.dart';
 import 'package:flutter_staggered_animations/flutter_staggered_animations.dart';
+import 'dart:typed_data'; // Required for using Uint8List
 
 import 'SignInPage.dart';
+import 'UpdatesPage.dart';
+class UpdatedHomePage extends StatefulWidget {
+  @override
+  _UpdatedHomePageState createState() => _UpdatedHomePageState();
+}
 
-class UpdatedHomePage extends StatelessWidget {
+class _UpdatedHomePageState extends State<UpdatedHomePage> {
+  late Future<SensorData> futureSensorData;
+
+  Future<SensorData> fetchData() async {
+    DatabaseReference ref = FirebaseDatabase.instance.ref('path/to/your/data/node');
+    DataSnapshot snapshot = await ref.get();
+
+    if (snapshot.exists) {
+      Map<dynamic, dynamic> dataMap = Map<dynamic, dynamic>.from(snapshot.value as Map);
+      return SensorData.fromJson(dataMap);
+    } else {
+      throw Exception('Failed to load sensor data');
+    }
+  }
+
+  @override
+  void initState() {
+    super.initState();
+    futureSensorData = fetchData();
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -18,54 +47,66 @@ class UpdatedHomePage extends StatelessWidget {
             padding: const EdgeInsets.all(16.0),
             child: Stack(
               children: [
-                AnimationLimiter(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.stretch,
-                    children: AnimationConfiguration.toStaggeredList(
-                      duration: const Duration(milliseconds: 375),
-                      childAnimationBuilder: (widget) => SlideAnimation(
-                        horizontalOffset: 50.0,
-                        child: FadeInAnimation(
-                          child: widget,
-                        ),
-                      ),
-                      children: [
-                        Row(
-                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                          children: [
-                            Image.asset(
-                                'assets/logo.png',
-                                height: 100,
-                                width: 100,
-                              ),
-                            ClayContainer(
-                              borderRadius: 50,
-                              child: IconButton(
-                                icon: Icon(EvaIcons.alertCircleOutline, color: Colors.red),
-                                onPressed: () {
-                                  _logout(context);
-                                },
-                              ),
+                FutureBuilder<SensorData>(
+                  future: futureSensorData,
+                  builder: (context, snapshot) {
+                    if (snapshot.connectionState == ConnectionState.waiting) {
+                      return Center(child: CircularProgressIndicator());
+                    } else if (snapshot.hasError) {
+                      return Text('Error: ${snapshot.error}');
+                    } else if (snapshot.hasData) {
+                      return AnimationLimiter(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.stretch,
+                          children: AnimationConfiguration.toStaggeredList(
+                            duration: const Duration(milliseconds: 375),
+                            childAnimationBuilder: (widget) => SlideAnimation(
+                              horizontalOffset: 50.0,
+                              child: FadeInAnimation(child: widget),
                             ),
-                          ],
-                        ),
-                        SizedBox(height: 32),
-                        Text(
-                          'Your Epilepsy Companion',
-                          textAlign: TextAlign.center,
-                          style: TextStyle(
-                            fontSize: 28,
-                            fontWeight: FontWeight.bold,
-                            color: Colors.white,
+                            children: [
+                              Row(
+                                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                                children: [
+                                  Image.asset(
+                                    'assets/logo.png',
+                                    height: 100,
+                                    width: 100,
+                                  ),
+                                  ClayContainer(
+                                    borderRadius: 50,
+                                    depth: 20,
+                                    spread: 5,
+                                    color: Color(0xFFd1baf8), // Adjusted for consistency
+                                    child: IconButton(
+                                      icon: Icon(EvaIcons.logOutOutline, color: Colors.red),
+                                      onPressed: () => _logout(context),
+                                    ),
+                                  ),
+                                ],
+                              ),
+                              SizedBox(height: 32),
+                              Text(
+                                'Your Epilepsy Companion',
+                                textAlign: TextAlign.center,
+                                style: TextStyle(
+                                  fontSize: 28,
+                                  fontWeight: FontWeight.bold,
+                                  color: Colors.white,
+                                ),
+                              ),
+                              SizedBox(height: 32),
+                              AlertBar(),
+                              SizedBox(height: 10),
+                              CurrentReadingsBox(sensorData: snapshot.data!),
+                            ],
                           ),
                         ),
-                        SizedBox(height: 32),
-                        AlertBar(),
-                        SizedBox(height: 10),
-                        CurrentReadingsBox(),
-                      ],
-                    ),
-                  ),
+                      );
+                    } else {
+                      return Text('No data available');
+                    }
+                  },
                 ),
                 Align(
                   alignment: Alignment.bottomCenter,
@@ -213,10 +254,32 @@ class MessageDoctorCard extends StatelessWidget {
             ),
             TextButton(
               child: Text("Send"),
-              onPressed: () {
-                // Logic to send the message
-                print("Message to Dr: ${_messageController.text}");
-                Navigator.of(context).pop();
+              onPressed: () async {
+                try {
+                  String patientId = FirebaseAuth.instance.currentUser?.uid ?? '';
+                  DocumentSnapshot patientDoc = await FirebaseFirestore.instance.collection('DoctorPatient').doc(patientId).get();
+                  if (patientDoc.exists) {
+                    var data = patientDoc.data() as Map<String, dynamic>;
+                    String? doctorId = data['doctorId'];
+                    if (doctorId != null) {
+                      await FirebaseFirestore.instance.collection('messages').add({
+                        'doctorId': doctorId,
+                        'patientId': patientId,
+                        'message': _messageController.text,
+                        'timestamp': FieldValue.serverTimestamp(),
+                      });
+                      Navigator.of(context).pop();
+                      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text("Message sent successfully!")));
+                    } else {
+                      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text("Doctor ID not found.")));
+                    }
+                  } else {
+                    ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text("Patient document does not exist.")));
+                  }
+                } catch (e) {
+                  print(e);
+                  ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text("Failed to send message.")));
+                }
               },
             ),
           ],
@@ -224,54 +287,71 @@ class MessageDoctorCard extends StatelessWidget {
       },
     );
   }
-}
 
+  Future<String?> _fetchDoctorId() async {
+    String patientId = FirebaseAuth.instance.currentUser?.uid ?? '';
+    DocumentSnapshot patientDoc = await FirebaseFirestore.instance.collection('DoctorPatient').doc(patientId).get();
+
+    if (patientDoc.exists && patientDoc.data() != null) {
+      var data = patientDoc.data() as Map<String, dynamic>;  // Correct casting to Map
+      String? doctorId = data['doctorId'];  // Safely accessing 'doctorId' as a String?
+      return doctorId;  // Return the doctorId, or null if it doesn't exist
+    }
+    return null;  // Return null if the document does not exist or data is not accessible
+  }
+
+
+}
 class CurrentReadingsBox extends StatelessWidget {
-  final List<Map<String, dynamic>> readings = [
-    {
-      'title': 'Electrical Signals',
-      'value': '72 Hz',
-    },
-    {
-      'title': 'Number of Blinks',
-      'value': '15 per minute',
-    },
-  ];
+  final SensorData sensorData;
+
+  CurrentReadingsBox({required this.sensorData});
 
   @override
   Widget build(BuildContext context) {
-    return Container(
-      margin: EdgeInsets.symmetric(vertical: 10),
-      padding: EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(15),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withOpacity(0.1),
-            blurRadius: 10,
-          ),
-        ],
-      ),
-      child: Column(
-        children: readings.map((reading) {
-          return ListTile(
+    List<Map<String, String>> readings = [
+      {
+        'title': 'Heart Rate',
+        'value': '${sensorData.heartRate} bpm',
+      },
+      {
+        'title': 'EEG',
+        'value': '${sensorData.eeg}',
+      },
+      {
+        'title': 'Seizure Detected',
+        'value': sensorData.seizureDetected ? 'Yes' : 'No',
+      },
+    ];
+
+    return ClayContainer(
+      borderRadius: 15,
+      depth: 20,
+      spread: 5,
+      color: Color(0xFFd1baf8),
+      child: Padding(
+        padding: const EdgeInsets.all(16.0),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: readings.map((reading) => ListTile(
             contentPadding: EdgeInsets.zero,
             title: Text(
-              reading['title'],
+              reading['title']!,
               style: TextStyle(
-                fontSize: 14,
-                color: Color(0xFFDCA1FF),
-                fontWeight: FontWeight.w500,
+                fontSize: 20,
+                fontWeight: FontWeight.bold,
+                color: Colors.white,
               ),
             ),
             trailing: Text(
-              reading['value'],
-              style: TextStyle(color: Color(0xFFDCA1FF), fontSize: 14),
+              reading['value']!,
+              style: TextStyle(
+                fontSize: 18,
+                color: Colors.white70,
+              ),
             ),
-            dense: true,
-          );
-        }).toList(),
+          )).toList(),
+        ),
       ),
     );
   }

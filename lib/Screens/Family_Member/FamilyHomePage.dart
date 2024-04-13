@@ -1,14 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:eva_icons_flutter/eva_icons_flutter.dart';
-
-import '../../Model/Patient.dart';
-
-// Assuming the Patient class and necessary imports are defined elsewhere in your project
+import 'package:cloud_firestore/cloud_firestore.dart';
+import '../../Model/Patient.dart'; // Ensure this path correctly leads to your Patient model
 
 class FamilyHomePage extends StatefulWidget {
   final Patient patient;
 
-  // Constructor requires a Patient object
   FamilyHomePage({required this.patient});
 
   @override
@@ -18,6 +15,9 @@ class FamilyHomePage extends StatefulWidget {
 class _FamilyHomePageState extends State<FamilyHomePage> {
   @override
   Widget build(BuildContext context) {
+    // Use MediaQuery to make padding responsive
+    double padding = MediaQuery.of(context).size.width * 0.05;
+
     return Scaffold(
       appBar: AppBar(
         backgroundColor: Color(0xFFd1baf8),
@@ -25,54 +25,67 @@ class _FamilyHomePageState extends State<FamilyHomePage> {
         title: Row(
           mainAxisAlignment: MainAxisAlignment.spaceBetween,
           children: [
-            // Assuming you have a logo.png in your assets folder
-            Image.asset(
-              'assets/logo.png',
-              height: 50,
-              width: 50,
-            ),
+            Image.asset('assets/logo.png', height: 50, width: 50),
             IconButton(
               icon: Icon(EvaIcons.logOutOutline, color: Colors.white),
               onPressed: () => _logout(context),
             ),
           ],
         ),
-        actions: [
-          IconButton(
-            icon: Icon(EvaIcons.messageCircleOutline, color: Colors.white),
-            onPressed: () => _showMessageDialog(),
-          ),
-          IconButton(
-            icon: Icon(EvaIcons.bellOutline, color: Colors.white),
-            onPressed: () {
-              // Navigate to notifications page
-            },
-          ),
-        ],
       ),
       body: SafeArea(
         child: Container(
-          color: Color(0xFFd1baf8),
+          color: Color(0xFFd1baf8), // Set the background color
           child: Padding(
-            padding: const EdgeInsets.all(16.0),
+            padding: EdgeInsets.symmetric(horizontal: padding),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text('Live Patient Data', style: TextStyle(fontSize: 22, fontWeight: FontWeight.bold, color: Colors.white)),
+                SizedBox(height: 20), // Adjust space as needed
+                Text(
+                  'Live Patient Data',
+                  style: TextStyle(
+                      fontSize: 22, fontWeight: FontWeight.bold, color: Colors.white),
+                ),
                 SizedBox(height: 10),
-                LiveDataFeed(patient: widget.patient), // Live data feed for the patient
+                LiveDataFeed(patient: widget.patient),
                 SizedBox(height: 20),
-                // Additional content or widgets specific to family members
+                // Add more widgets here as needed, they'll inherit the background color
               ],
             ),
           ),
         ),
       ),
+      floatingActionButton: FloatingActionButton(
+        onPressed: _showMessageDialog,
+        backgroundColor: Colors.white,
+        child: Icon(EvaIcons.emailOutline, color: Color(0xFFd1baf8)),
+      ),
     );
   }
-
+// Helper method to style message containers
+  Widget _styledMessageContainer(String message) {
+    return Container(
+      height: 100,
+      decoration: BoxDecoration(
+        color: Colors.white24, // Slightly transparent white for contrast
+        borderRadius: BorderRadius.circular(12),
+      ),
+      child: Center(
+        child: Text(
+          message,
+          style: TextStyle(
+            color: Colors.white,
+            fontSize: 18, // Larger font size for visibility
+            fontWeight: FontWeight.bold, // Bold text for emphasis
+          ),
+          textAlign: TextAlign.center,
+        ),
+      ),
+    );
+  }
   void _logout(BuildContext context) {
-    // Implement logout logic here
+    // Implement logout logic here, potentially involving FirebaseAuth sign-out
     Navigator.of(context).popUntil((route) => route.isFirst);
   }
 
@@ -95,7 +108,7 @@ class _FamilyHomePageState extends State<FamilyHomePage> {
             TextButton(
               child: Text("Send"),
               onPressed: () {
-                // Logic to send a message to the patient or doctor
+                // Here, add logic to actually send a message, perhaps through Firestore
                 Navigator.of(context).pop();
               },
             ),
@@ -106,20 +119,46 @@ class _FamilyHomePageState extends State<FamilyHomePage> {
   }
 }
 
-class LiveDataFeed extends StatelessWidget {
+class LiveDataFeed extends StatefulWidget {
   final Patient patient;
 
   LiveDataFeed({required this.patient});
 
   @override
+  _LiveDataFeedState createState() => _LiveDataFeedState();
+}
+
+class _LiveDataFeedState extends State<LiveDataFeed> {
+  final FirebaseFirestore _firestore = FirebaseFirestore.instance;
+
+  @override
   Widget build(BuildContext context) {
-    return Container(
-      height: 100,
-      decoration: BoxDecoration(
-        color: Colors.white54,
-        borderRadius: BorderRadius.circular(12),
-      ),
-      child: Center(child: Text('Live data for ${patient.name}', style: TextStyle(color: Colors.white))),
+    return StreamBuilder<DocumentSnapshot>(
+      stream: _firestore.collection('healthData').doc(widget.patient.id).snapshots(),
+      builder: (context, snapshot) {
+        if (snapshot.connectionState == ConnectionState.waiting) {
+          return Center(child: CircularProgressIndicator(color: Colors.white));
+        }
+        if (!snapshot.hasData || snapshot.data?.data() == null) {
+          return Center(child: Text('No live data available.', style: TextStyle(color: Colors.white)));
+        }
+        var data = snapshot.data!.data() as Map<String, dynamic>?;
+        if (data == null) {
+          return Center(child: Text('Data is currently not available.', style: TextStyle(color: Colors.white)));
+        }
+        return Container(
+          padding: EdgeInsets.all(16), // Provide padding for the inner text
+          decoration: BoxDecoration(
+            color: Colors.white24, // Slightly transparent white
+            borderRadius: BorderRadius.circular(12),
+          ),
+          child: Text(
+            'Heart Rate: ${data['heartRate']}\nEEG: ${data['eeg']}\n...',
+            style: TextStyle(color: Colors.white),
+            textAlign: TextAlign.center,
+          ),
+        );
+      },
     );
   }
 }

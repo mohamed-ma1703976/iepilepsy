@@ -1,11 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:firebase_core/firebase_core.dart';
+import 'package:flutter_gemini/flutter_gemini.dart';
 import 'Screens/SignInPage.dart'; // Import Firebase Core
+import 'dart:typed_data'; // Required for using Uint8List
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
-
-  // Initialize Firebase with options from the google-services.json file
   await Firebase.initializeApp();
 
   runApp(MyApp());
