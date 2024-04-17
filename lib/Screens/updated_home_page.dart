@@ -108,13 +108,6 @@ class _UpdatedHomePageState extends State<UpdatedHomePage> {
                     }
                   },
                 ),
-                Align(
-                  alignment: Alignment.bottomCenter,
-                  child: Padding(
-                    padding: const EdgeInsets.only(bottom: 16.0),
-                    child: MessageDoctorCard(),
-                  ),
-                ),
               ],
             ),
           ),

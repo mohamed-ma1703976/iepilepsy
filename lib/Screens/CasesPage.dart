@@ -42,27 +42,6 @@ class _CasesPageState extends State<CasesPage> {
     });
     _processMessage(text);
   }
-  void handleEpilepsyQuestion(String question) {
-    // Setting loading state
-    setState(() {
-      _isLoading = true;
-    });
-
-    // Call the model to generate an answer for the epilepsy question
-    _model.generateContent([Content.text(question)]).then((response) {
-      final responseText = response.text ?? "I couldn't find any detailed information on that topic.";
-      setState(() {
-        messages.add(ChatMessage(text: responseText, type: MessageType.received));
-        _isLoading = false;  // Stop the loading state
-      });
-    }).catchError((error) {
-      setState(() {
-        messages.add(ChatMessage(text: "Sorry, there was a problem fetching the information.", type: MessageType.received));
-        _isLoading = false;  // Stop the loading state
-        debugPrint('Error fetching response: $error');
-      });
-    });
-  }
 
   void _processMessage(String text) {
     if (epilepsyQuestions.contains(text)) {
@@ -85,6 +64,28 @@ class _CasesPageState extends State<CasesPage> {
         });
       });
     }
+  }
+
+  void handleEpilepsyQuestion(String question) {
+    // Setting loading state
+    setState(() {
+      _isLoading = true;
+    });
+
+    // Call the model to generate an answer for the epilepsy question
+    _model.generateContent([Content.text(question)]).then((response) {
+      final responseText = response.text ?? "I couldn't find any detailed information on that topic.";
+      setState(() {
+        messages.add(ChatMessage(text: responseText, type: MessageType.received));
+        _isLoading = false;  // Stop the loading state
+      });
+    }).catchError((error) {
+      setState(() {
+        messages.add(ChatMessage(text: "Sorry, there was a problem fetching the information.", type: MessageType.received));
+        _isLoading = false;  // Stop the loading state
+        debugPrint('Error fetching response: $error');
+      });
+    });
   }
 
   @override
@@ -129,37 +130,34 @@ class _CasesPageState extends State<CasesPage> {
       child: SlideAnimation(
         verticalOffset: 50.0,
         child: FadeInAnimation(
-          child: ClayContainer(
-            borderRadius: 20,
-            depth: 12,
-            spread: 5,
-            color: isSent ? Colors.deepPurple[300] : Colors.deepPurple[100],
-            child: Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 12.0, vertical: 8.0),
-              child: Row(
-                mainAxisAlignment: isSent ? MainAxisAlignment.end : MainAxisAlignment.start,
-                children: [
-                  if (!isSent)
-                    CircleAvatar(
-                      backgroundColor: Colors.white,
-                      child: Icon(EvaIcons.personOutline, color: Colors.deepPurple),
+          child: Container(
+            margin: EdgeInsets.symmetric(vertical: 4.0),
+            child: Row(
+              mainAxisAlignment: isSent ? MainAxisAlignment.end : MainAxisAlignment.start,
+              children: [
+                if (!isSent)
+                  CircleAvatar(
+                    backgroundColor: Colors.deepPurple[200],
+                    child: Icon(EvaIcons.personOutline, color: Colors.white),
+                  ),
+                SizedBox(width: 8),
+                Flexible(
+                  child: Container(
+                    padding: EdgeInsets.all(12.0),
+                    decoration: BoxDecoration(
+                      borderRadius: BorderRadius.circular(20.0),
+                      color: isSent ? Colors.deepPurple[300] : Colors.grey[200],
                     ),
-                  SizedBox(width: 8),
-                  Flexible(
-                    child: Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 12.0),
-                      decoration: BoxDecoration(
-                        color: isSent ? Colors.deepPurple : Colors.deepPurple[50],
-                        borderRadius: BorderRadius.circular(15),
-                      ),
-                      child: Text(
-                        message.text,
-                        style: TextStyle(color: Colors.purple),  // Using default system font
+                    child: Text(
+                      message.text,
+                      style: TextStyle(
+                        color: isSent ? Colors.white : Colors.black,
+                        fontSize: 16.0,
                       ),
                     ),
                   ),
-                ],
-              ),
+                ),
+              ],
             ),
           ),
         ),

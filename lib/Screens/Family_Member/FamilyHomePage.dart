@@ -63,7 +63,8 @@ class _FamilyHomePageState extends State<FamilyHomePage> {
       ),
     );
   }
-// Helper method to style message containers
+
+  // Helper method to style message containers
   Widget _styledMessageContainer(String message) {
     return Container(
       height: 100,
@@ -84,6 +85,7 @@ class _FamilyHomePageState extends State<FamilyHomePage> {
       ),
     );
   }
+
   void _logout(BuildContext context) {
     // Implement logout logic here, potentially involving FirebaseAuth sign-out
     Navigator.of(context).popUntil((route) => route.isFirst);
@@ -152,13 +154,34 @@ class _LiveDataFeedState extends State<LiveDataFeed> {
             color: Colors.white24, // Slightly transparent white
             borderRadius: BorderRadius.circular(12),
           ),
-          child: Text(
-            'Heart Rate: ${data['heartRate']}\nEEG: ${data['eeg']}\n...',
-            style: TextStyle(color: Colors.white),
-            textAlign: TextAlign.center,
+          child: Column(
+            children: [
+              _buildDataItem('Heart Rate', data['heartRate'] ?? 'NaN'),
+              _buildDataItem('EEG', data['eeg'] ?? 'NaN'),
+              // Add more data items here if needed
+            ],
           ),
         );
       },
+    );
+  }
+
+  Widget _buildDataItem(String label, dynamic value) {
+    return Padding(
+      padding: EdgeInsets.symmetric(vertical: 8.0),
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+        children: [
+          Text(
+            '$label:',
+            style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
+          ),
+          Text(
+            '$value',
+            style: TextStyle(color: Colors.white),
+          ),
+        ],
+      ),
     );
   }
 }

@@ -12,6 +12,8 @@ class EmergencyNumbersPage extends StatefulWidget {
 class _EmergencyNumbersPageState extends State<EmergencyNumbersPage> {
   bool _isDataLoaded = false;
   List<Map<String, dynamic>> emergencyNumbers = [];
+  List<TextEditingController> nameControllers = [];
+  List<TextEditingController> numberControllers = [];
 
   @override
   void initState() {
@@ -26,6 +28,7 @@ class _EmergencyNumbersPageState extends State<EmergencyNumbersPage> {
       if (snapshot.exists) {
         Map<String, dynamic> data = snapshot.data()!;
         emergencyNumbers = List<Map<String, dynamic>>.from(data['contacts']);
+        _initializeControllers();
         _isDataLoaded = true;
       } else {
         _isDataLoaded = false; // No data found, consider initializing if needed
@@ -35,6 +38,18 @@ class _EmergencyNumbersPageState extends State<EmergencyNumbersPage> {
       _isDataLoaded = false;
     }
     setState(() {});
+  }
+
+  void _initializeControllers() {
+    nameControllers = emergencyNumbers.map((item) => TextEditingController(text: item['name'])).toList();
+    numberControllers = emergencyNumbers.map((item) => TextEditingController(text: item['number'])).toList();
+  }
+
+  @override
+  void dispose() {
+    nameControllers.forEach((controller) => controller.dispose());
+    numberControllers.forEach((controller) => controller.dispose());
+    super.dispose();
   }
 
   Future<void> _updateEmergencyNumbers() async {
@@ -67,8 +82,6 @@ class _EmergencyNumbersPageState extends State<EmergencyNumbersPage> {
         itemCount: emergencyNumbers.length,
         itemBuilder: (context, index) {
           final item = emergencyNumbers[index];
-          TextEditingController nameController = TextEditingController(text: item['name']);
-          TextEditingController numberController = TextEditingController(text: item['number']);
 
           return AnimationConfiguration.staggeredList(
             position: index,
@@ -86,7 +99,7 @@ class _EmergencyNumbersPageState extends State<EmergencyNumbersPage> {
                     contentPadding: EdgeInsets.symmetric(horizontal: 20, vertical: 10),
                     leading: Icon(Icons.person, color: Theme.of(context).primaryColor),
                     title: TextField(
-                      controller: nameController,
+                      controller: nameControllers[index],
                       onSubmitted: (value) {
                         item['name'] = value;
                         _updateEmergencyNumbers();
@@ -94,7 +107,7 @@ class _EmergencyNumbersPageState extends State<EmergencyNumbersPage> {
                       decoration: InputDecoration(hintText: "Enter Name"),
                     ),
                     subtitle: TextField(
-                      controller: numberController,
+                      controller: numberControllers[index],
                       onSubmitted: (value) {
                         item['number'] = value;
                         _updateEmergencyNumbers();
@@ -140,6 +153,7 @@ class _EmergencyNumbersPageState extends State<EmergencyNumbersPage> {
               'number': initialController.text,
               'icon': Icons.medical_services
             });
+            _initializeControllers();
             _updateEmergencyNumbers();
             setState(() {
               _isDataLoaded = true;
