@@ -4,6 +4,30 @@ import 'package:expansion_tile_card/expansion_tile_card.dart';
 import 'package:flutter_staggered_animations/flutter_staggered_animations.dart';
 
 class NotificationsPage extends StatelessWidget {
+  // Array containing patient-specific notification details
+  final List<Map<String, String>> notifications = [
+    {
+      "title": "Medication Reminder",
+      "details": "Reminder for John Doe to take prescribed epilepsy medication at 8:00 AM."
+    },
+    {
+      "title": "Upcoming Neurologist Appointment",
+      "details": "John Doe has a neurologist appointment on April 20th at 2:00 PM. Don't forget to prepare the recent EEG results."
+    },
+    {
+      "title": "Seizure Detected",
+      "details": "An irregular seizure activity detected for Jane Doe on April 15th. Please review the health log."
+    },
+    {
+      "title": "Monthly Check-In",
+      "details": "Reminder to schedule a monthly check-in for Jane Doe. Review medication effectiveness and discuss any recent symptoms."
+    },
+    {
+      "title": "New Patient Registration",
+      "details": "A new patient with epilepsy, Mike Ross, has been registered in the system. Initial assessment scheduled for April 18th."
+    },
+  ];
+
   @override
   Widget build(BuildContext context) {
     final screenSize = MediaQuery.of(context).size;
@@ -14,7 +38,7 @@ class NotificationsPage extends StatelessWidget {
           padding: const EdgeInsets.all(20.0),
           child: AnimationLimiter(
             child: ListView.builder(
-              itemCount: 5, // Adjust as necessary
+              itemCount: notifications.length, // Adjust based on the size of the notifications list
               itemBuilder: (context, index) {
                 return AnimationConfiguration.staggeredList(
                   position: index,
@@ -22,7 +46,7 @@ class NotificationsPage extends StatelessWidget {
                   child: SlideAnimation(
                     horizontalOffset: 50.0,
                     child: FadeInAnimation(
-                      child: _buildNotificationTile(index, screenSize, context),
+                      child: _buildNotificationTile(notifications[index], screenSize, context),
                     ),
                   ),
                 );
@@ -34,7 +58,7 @@ class NotificationsPage extends StatelessWidget {
     );
   }
 
-  Widget _buildNotificationTile(int index, Size screenSize, BuildContext context) {
+  Widget _buildNotificationTile(Map<String, String> notification, Size screenSize, BuildContext context) {
     return Container(
       margin: EdgeInsets.only(bottom: 20.0),
       child: ExpansionTileCard(
@@ -42,7 +66,7 @@ class NotificationsPage extends StatelessWidget {
         baseColor: Color(0xFFd1baf8), // Card base color
         expandedColor: Color(0xFFd1baf8).withOpacity(0.9), // Card expanded color
         title: Text(
-          "Notification ${index + 1}",
+          notification["title"]!,
           style: TextStyle(color: Colors.white), // Adjust text color for readability
         ),
         children: <Widget>[
@@ -57,13 +81,8 @@ class NotificationsPage extends StatelessWidget {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: <Widget>[
                 Text(
-                  "Details for Notification ${index + 1}",
+                  notification["details"]!,
                   style: TextStyle(fontSize: 16, color: Colors.white), // Adjust text color for readability
-                ),
-                SizedBox(height: 10),
-                Text(
-                  "Lorem ipsum dolor sit amet, consectetur adipiscing elit. Fusce vehicula felis non eleifend dictum.",
-                  style: TextStyle(color: Colors.white70), // Adjust text color for readability
                 ),
               ],
             ),
