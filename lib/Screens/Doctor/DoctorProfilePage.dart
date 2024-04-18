@@ -4,12 +4,15 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 
 class DoctorProfilePage extends StatefulWidget {
+  final String userId; // Add a parameter to receive the user ID
+
+  DoctorProfilePage({required this.userId}); // Constructor
+
   @override
   _DoctorProfilePageState createState() => _DoctorProfilePageState();
 }
 
 class _DoctorProfilePageState extends State<DoctorProfilePage> {
-  final FirebaseAuth _firebaseAuth = FirebaseAuth.instance;
   final FirebaseFirestore _firestore = FirebaseFirestore.instance;
 
   Map<String, dynamic>? doctorProfile;
@@ -23,24 +26,21 @@ class _DoctorProfilePageState extends State<DoctorProfilePage> {
 
   Future<void> _fetchDoctorProfile() async {
     setState(() => isLoading = true);
-    User? user = _firebaseAuth.currentUser;
-    if (user != null) {
-      try {
-        DocumentSnapshot docSnapshot = await _firestore.collection('users').doc(user.uid).get();
-        if (docSnapshot.exists) {
-          setState(() {
-            doctorProfile = docSnapshot.data() as Map<String, dynamic>?;
-            isLoading = false;
-          });
-        } else {
-          // Handle no data available
-          setState(() => isLoading = false);
-          ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text("Profile data not available")));
-        }
-      } catch (e) {
+    try {
+      DocumentSnapshot docSnapshot = await _firestore.collection('users').doc(widget.userId).get(); // Use the received user ID
+      if (docSnapshot.exists) {
+        setState(() {
+          doctorProfile = docSnapshot.data() as Map<String, dynamic>?;
+          isLoading = false;
+        });
+      } else {
+        // Handle no data available
         setState(() => isLoading = false);
-        ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text("Failed to load profile: $e")));
+        ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text("Profile data not available")));
       }
+    } catch (e) {
+      setState(() => isLoading = false);
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text("Failed to load profile: $e")));
     }
   }
 

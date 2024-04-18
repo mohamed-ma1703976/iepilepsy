@@ -8,6 +8,10 @@ import 'PatientsPage.dart';
 // Import other pages and utilities as before
 
 class DoctorMainHome extends StatefulWidget {
+  final String userId;
+
+  DoctorMainHome({required this.userId});
+
   @override
   _DoctorMainHomeState createState() => _DoctorMainHomeState();
 }
@@ -23,7 +27,7 @@ class _DoctorMainHomeState extends State<DoctorMainHome> {
       DoctorHomePage(),
       PatientsPage(),
       NotificationsPage(),
-      DoctorProfilePage(),
+      DoctorProfilePage(userId: widget.userId), // Pass the generated user ID here
     ];
   }
 
