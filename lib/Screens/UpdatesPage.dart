@@ -126,8 +126,8 @@ void fetchDataAndUpdateFirestore() async {
                   children: [
                     _buildSensorTile('Heart Rate', '${snapshot.data!.heartRate} bpm', Icons.favorite),
                     _buildSensorTile('EEG', '${snapshot.data!.eeg}', Icons.waves),
-                    _buildSensorTile('IR1 Blinks', '${snapshot.data!.ir1Blinks}', Icons.visibility),
-                    _buildSensorTile('IR2 Blinks', '${snapshot.data!.ir2Blinks}', Icons.visibility),
+                    _buildSensorTile('Right Eye Blinks', '${snapshot.data!.ir1Blinks}', Icons.visibility),
+                    _buildSensorTile('Left Eye Blinks', '${snapshot.data!.ir2Blinks}', Icons.visibility),
                   ],
                 ),
               ),

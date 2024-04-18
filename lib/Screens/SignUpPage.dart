@@ -6,8 +6,8 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:image_picker/image_picker.dart';
 
-import 'SignInPage.dart'; // Update this import based on your project's structure
-import 'PatientInfoPage.dart'; // Assuming you have a PatientInfoPage
+import 'SignInPage.dart';  // Update this import based on your project's structure
+import 'PatientInfoPage.dart';  // Assuming you have a PatientInfoPage
 
 class SignUpPage extends StatefulWidget {
   @override
@@ -112,7 +112,8 @@ class _SignUpPageState extends State<SignUpPage> {
       );
 
       if (userCredential.user != null) {
-        final String userId = userCredential.user!.uid; // Using UID as the user's ID
+        // Generate a unique user ID
+        final String userId = await _generateUniqueUserId();
 
         Map<String, dynamic> userData = {
           'userId': userId,
@@ -179,7 +180,7 @@ class _SignUpPageState extends State<SignUpPage> {
         actions: [
           TextButton(
             child: Text('OK'),
-            onPressed: () => Navigator.of(context).pop(),
+            onPressed: () => Navigator.of(context)..pop(),
           )
         ],
       ),
@@ -188,6 +189,9 @@ class _SignUpPageState extends State<SignUpPage> {
 
   @override
   Widget build(BuildContext context) {
+    double screenHeight = MediaQuery.of(context).size.height;
+    double screenWidth = MediaQuery.of(context).size.width;
+
     return Scaffold(
       body: Container(
         color: Color(0xFFd1baf8),
@@ -208,25 +212,24 @@ class _SignUpPageState extends State<SignUpPage> {
                     backgroundImage: FileImage(_image!),
                   ),
                 ),
-                SizedBox(height: 10),
+                SizedBox(height: screenHeight * 0.01),
                 TextButton(
                   onPressed: _selectImage,
                   child: Text('Select Profile Picture', style: TextStyle(color: Colors.white)),
                 ),
-                SizedBox(height: 20),
-                ..._buildTextFields(),
-                _buildUserTypeDropdown(),
-                if (_selectedUserType == "Patient") ..._buildPatientSpecificFields(),
-                if (_selectedUserType == "Doctor") ..._buildDoctorSpecificFields(),
-                if (_selectedUserType == "Family Member") ..._buildFamilyMemberSpecificFields(),
-
-                SizedBox(height: 20),
+                SizedBox(height: screenHeight * 0.02),
+                ..._buildTextFields(screenWidth),
+                _buildUserTypeDropdown(screenWidth),
+                if (_selectedUserType == "Patient") ..._buildPatientSpecificFields(screenWidth),
+                if (_selectedUserType == "Doctor") ..._buildDoctorSpecificFields(screenWidth),
+                if (_selectedUserType == "Family Member") ..._buildFamilyMemberSpecificFields(screenWidth),
+                SizedBox(height: screenHeight * 0.02),
                 ElevatedButton(
                   onPressed: _handleSignUp,
                   style: ElevatedButton.styleFrom(
                     primary: Color(0xFFe8e0ed),
                     onPrimary: Color(0xFF9C27B0),
-                    padding: EdgeInsets.symmetric(horizontal: 40, vertical: 12),
+                    padding: EdgeInsets.symmetric(horizontal: 40),
                     shape: RoundedRectangleBorder(
                       borderRadius: BorderRadius.circular(15),
                     ),
@@ -241,24 +244,24 @@ class _SignUpPageState extends State<SignUpPage> {
     );
   }
 
-  List<Widget> _buildTextFields() {
+  List<Widget> _buildTextFields(double width) {
     return [
       Padding(
-        padding: const EdgeInsets.all(16.0),
+        padding: EdgeInsets.all(width * 0.04),
         child: TextField(
           controller: _nameController,
           decoration: _inputDecoration("Enter Name"),
         ),
       ),
       Padding(
-        padding: const EdgeInsets.all(16.0),
+        padding: EdgeInsets.all(width * 0.04),
         child: TextField(
           controller: _emailController,
           decoration: _inputDecoration("Enter Email"),
         ),
       ),
       Padding(
-        padding: const EdgeInsets.all(16.0),
+        padding: EdgeInsets.all(width * 0.04),
         child: TextField(
           controller: _passwordController,
           obscureText: true,
@@ -266,7 +269,7 @@ class _SignUpPageState extends State<SignUpPage> {
         ),
       ),
       Padding(
-        padding: const EdgeInsets.all(16.0),
+        padding: EdgeInsets.all(width * 0.04),
         child: TextField(
           controller: _confirmPasswordController,
           obscureText: true,
@@ -274,7 +277,7 @@ class _SignUpPageState extends State<SignUpPage> {
         ),
       ),
       Padding(
-        padding: const EdgeInsets.all(16.0),
+        padding: EdgeInsets.all(width * 0.04),
         child: TextField(
           controller: _phoneController,
           keyboardType: TextInputType.phone,
@@ -284,9 +287,9 @@ class _SignUpPageState extends State<SignUpPage> {
     ];
   }
 
-  Widget _buildUserTypeDropdown() {
+  Widget _buildUserTypeDropdown(double width) {
     return Padding(
-      padding: const EdgeInsets.all(16.0),
+      padding: EdgeInsets.all(width * 0.04),
       child: DropdownButtonFormField<String>(
         decoration: _inputDecoration("Select User Type"),
         value: _selectedUserType,
@@ -306,10 +309,10 @@ class _SignUpPageState extends State<SignUpPage> {
     );
   }
 
-  List<Widget> _buildPatientSpecificFields() {
+  List<Widget> _buildPatientSpecificFields(double width) {
     return [
       Padding(
-        padding: const EdgeInsets.all(16.0),
+        padding: EdgeInsets.all(width * 0.04),
         child: TextField(
           controller: _ageController,
           keyboardType: TextInputType.number,
@@ -317,14 +320,14 @@ class _SignUpPageState extends State<SignUpPage> {
         ),
       ),
       Padding(
-        padding: const EdgeInsets.all(16.0),
+        padding: EdgeInsets.all(width * 0.04),
         child: TextField(
           controller: _epilepsyTypeController,
           decoration: _inputDecoration("Enter Epilepsy Type"),
         ),
       ),
       Padding(
-        padding: const EdgeInsets.symmetric(horizontal: 16.0),
+        padding: EdgeInsets.symmetric(horizontal: width * 0.04),
         child: DropdownButtonFormField<String>(
           decoration: _inputDecoration("Select Gender"),
           value: _gender,
@@ -343,7 +346,7 @@ class _SignUpPageState extends State<SignUpPage> {
         ),
       ),
       Padding(
-        padding: const EdgeInsets.all(16.0),
+        padding: EdgeInsets.all(width * 0.04),
         child: TextField(
           controller: _chronicDiseasesController,
           decoration: _inputDecoration("Enter Chronic Diseases"),
@@ -353,17 +356,17 @@ class _SignUpPageState extends State<SignUpPage> {
     ];
   }
 
-  List<Widget> _buildDoctorSpecificFields() {
+  List<Widget> _buildDoctorSpecificFields(double width) {
     return [
       Padding(
-        padding: const EdgeInsets.all(16.0),
+        padding: EdgeInsets.all(width * 0.04),
         child: TextField(
           controller: _specializationController,
           decoration: _inputDecoration("Enter Specialization"),
         ),
       ),
       Padding(
-        padding: const EdgeInsets.all(16.0),
+        padding: EdgeInsets.all(width * 0.04),
         child: TextField(
           controller: _hospitalController,
           decoration: _inputDecoration("Enter Hospital"),
@@ -372,10 +375,10 @@ class _SignUpPageState extends State<SignUpPage> {
     ];
   }
 
-  List<Widget> _buildFamilyMemberSpecificFields() {
+  List<Widget> _buildFamilyMemberSpecificFields(double width) {
     return [
       Padding(
-        padding: const EdgeInsets.all(16.0),
+        padding: EdgeInsets.all(width * 0.04),
         child: TextField(
           controller: _patientIdController,
           decoration: _inputDecoration("Enter Patient ID"),
@@ -386,7 +389,6 @@ class _SignUpPageState extends State<SignUpPage> {
 
   @override
   void dispose() {
-    // Dispose controllers
     _nameController.dispose();
     _emailController.dispose();
     _passwordController.dispose();

@@ -1,7 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:eva_icons_flutter/eva_icons_flutter.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
-import '../../Model/Patient.dart'; // Ensure this path correctly leads to your Patient model
+import '../../Model/Patient.dart';
+import '../SignInPage.dart'; // Ensure this path correctly leads to your Patient model
 
 class FamilyHomePage extends StatefulWidget {
   final Patient patient;
@@ -15,7 +16,6 @@ class FamilyHomePage extends StatefulWidget {
 class _FamilyHomePageState extends State<FamilyHomePage> {
   @override
   Widget build(BuildContext context) {
-    // Use MediaQuery to make padding responsive
     double padding = MediaQuery.of(context).size.width * 0.05;
 
     return Scaffold(
@@ -35,22 +35,22 @@ class _FamilyHomePageState extends State<FamilyHomePage> {
       ),
       body: SafeArea(
         child: Container(
-          color: Color(0xFFd1baf8), // Set the background color
+          color: Color(0xFFd1baf8),
           child: Padding(
             padding: EdgeInsets.symmetric(horizontal: padding),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                SizedBox(height: 20), // Adjust space as needed
+                SizedBox(height: 20),
                 Text(
                   'Live Patient Data',
-                  style: TextStyle(
-                      fontSize: 22, fontWeight: FontWeight.bold, color: Colors.white),
+                  style: TextStyle(fontSize: 22, fontWeight: FontWeight.bold, color: Colors.white),
                 ),
                 SizedBox(height: 10),
-                LiveDataFeed(patient: widget.patient),
+                Expanded(
+                  child: LiveDataFeed(patientId: widget.patient.id), // Now passing patientId
+                ),
                 SizedBox(height: 20),
-                // Add more widgets here as needed, they'll inherit the background color
               ],
             ),
           ),
@@ -64,33 +64,13 @@ class _FamilyHomePageState extends State<FamilyHomePage> {
     );
   }
 
-  // Helper method to style message containers
-  Widget _styledMessageContainer(String message) {
-    return Container(
-      height: 100,
-      decoration: BoxDecoration(
-        color: Colors.white24, // Slightly transparent white for contrast
-        borderRadius: BorderRadius.circular(12),
-      ),
-      child: Center(
-        child: Text(
-          message,
-          style: TextStyle(
-            color: Colors.white,
-            fontSize: 18, // Larger font size for visibility
-            fontWeight: FontWeight.bold, // Bold text for emphasis
-          ),
-          textAlign: TextAlign.center,
-        ),
-      ),
-    );
-  }
-
   void _logout(BuildContext context) {
-    // Implement logout logic here, potentially involving FirebaseAuth sign-out
-    Navigator.of(context).popUntil((route) => route.isFirst);
+    // Implement your logout logic here
+    // Navigate to SignInPage after logout
+    Navigator.of(context).pushReplacement(MaterialPageRoute(
+      builder: (context) => SignInPage(),
+    ));
   }
-
   void _showMessageDialog() {
     TextEditingController messageController = TextEditingController();
     showDialog(
@@ -120,11 +100,10 @@ class _FamilyHomePageState extends State<FamilyHomePage> {
     );
   }
 }
-
 class LiveDataFeed extends StatefulWidget {
-  final Patient patient;
+  final String patientId;
 
-  LiveDataFeed({required this.patient});
+  LiveDataFeed({required this.patientId});
 
   @override
   _LiveDataFeedState createState() => _LiveDataFeedState();
@@ -136,29 +115,35 @@ class _LiveDataFeedState extends State<LiveDataFeed> {
   @override
   Widget build(BuildContext context) {
     return StreamBuilder<DocumentSnapshot>(
-      stream: _firestore.collection('healthData').doc(widget.patient.id).snapshots(),
+      stream: _firestore.collection('healthData').doc(widget.patientId).snapshots(),
       builder: (context, snapshot) {
-        if (snapshot.connectionState == ConnectionState.waiting) {
-          return Center(child: CircularProgressIndicator(color: Colors.white));
+        // Default values
+        var heartRate = 0;
+        var eeg = 0;
+        var ir1Blinks = 0;
+        var ir2Blinks = 0;
+
+        if (snapshot.hasData && snapshot.data!.data() != null) {
+          var data = snapshot.data!.data() as Map<String, dynamic>;
+          heartRate = data['heartRate'] ?? 0;
+          eeg = data['eeg'] ?? 0;
+          ir1Blinks = data['ir1Blinks'] ?? 0;
+          ir2Blinks = data['ir2Blinks'] ?? 0;
         }
-        if (!snapshot.hasData || snapshot.data?.data() == null) {
-          return Center(child: Text('No live data available.', style: TextStyle(color: Colors.white)));
-        }
-        var data = snapshot.data!.data() as Map<String, dynamic>?;
-        if (data == null) {
-          return Center(child: Text('Data is currently not available.', style: TextStyle(color: Colors.white)));
-        }
+
         return Container(
-          padding: EdgeInsets.all(16), // Provide padding for the inner text
+          padding: EdgeInsets.all(16),
           decoration: BoxDecoration(
-            color: Colors.white24, // Slightly transparent white
+            color: Colors.white24,
             borderRadius: BorderRadius.circular(12),
           ),
           child: Column(
             children: [
-              _buildDataItem('Heart Rate', data['heartRate'] ?? 'NaN'),
-              _buildDataItem('EEG', data['eeg'] ?? 'NaN'),
-              // Add more data items here if needed
+              _buildDataItem('Heart Rate', heartRate.toString()),
+              _buildDataItem('EEG', eeg.toString()),
+              _buildDataItem('IR1 Blinks', ir1Blinks.toString()),
+              _buildDataItem('IR2 Blinks', ir2Blinks.toString()),
+              // Additional data items can be added here if needed
             ],
           ),
         );
@@ -166,20 +151,14 @@ class _LiveDataFeedState extends State<LiveDataFeed> {
     );
   }
 
-  Widget _buildDataItem(String label, dynamic value) {
+  Widget _buildDataItem(String label, String value) {
     return Padding(
       padding: EdgeInsets.symmetric(vertical: 8.0),
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
-          Text(
-            '$label:',
-            style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
-          ),
-          Text(
-            '$value',
-            style: TextStyle(color: Colors.white),
-          ),
+          Text(label + ':', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
+          Text(value, style: TextStyle(color: Colors.white)),
         ],
       ),
     );

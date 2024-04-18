@@ -15,6 +15,9 @@ class _EmergencyNumbersPageState extends State<EmergencyNumbersPage> {
   List<TextEditingController> nameControllers = [];
   List<TextEditingController> numberControllers = [];
 
+  TextEditingController doctorNumberController = TextEditingController();
+  TextEditingController familyNumberController = TextEditingController();
+
   @override
   void initState() {
     super.initState();
@@ -31,13 +34,26 @@ class _EmergencyNumbersPageState extends State<EmergencyNumbersPage> {
         _initializeControllers();
         _isDataLoaded = true;
       } else {
-        _isDataLoaded = false; // No data found, consider initializing if needed
+        await _initializeDefaultNumbers(userId);
       }
     } catch (e) {
       print('Error fetching emergency numbers: $e');
       _isDataLoaded = false;
     }
     setState(() {});
+  }
+
+  Future<void> _initializeDefaultNumbers(String userId) async {
+    emergencyNumbers = [
+      {'name': 'Ambulance', 'number': '999'},
+      {'name': 'Fire Service', 'number': '999'},
+      {'name': 'Police', 'number': '999'},
+      {'name': 'My Doctor', 'number': doctorNumberController.text},
+      {'name': 'Family Member', 'number': familyNumberController.text}
+    ];
+    _initializeControllers();
+    await _updateEmergencyNumbers();
+    _isDataLoaded = true;
   }
 
   void _initializeControllers() {
@@ -49,6 +65,8 @@ class _EmergencyNumbersPageState extends State<EmergencyNumbersPage> {
   void dispose() {
     nameControllers.forEach((controller) => controller.dispose());
     numberControllers.forEach((controller) => controller.dispose());
+    doctorNumberController.dispose();
+    familyNumberController.dispose();
     super.dispose();
   }
 
@@ -82,7 +100,6 @@ class _EmergencyNumbersPageState extends State<EmergencyNumbersPage> {
         itemCount: emergencyNumbers.length,
         itemBuilder: (context, index) {
           final item = emergencyNumbers[index];
-
           return AnimationConfiguration.staggeredList(
             position: index,
             duration: const Duration(milliseconds: 375),
@@ -139,27 +156,24 @@ class _EmergencyNumbersPageState extends State<EmergencyNumbersPage> {
   }
 
   Widget _buildInitialInput() {
-    TextEditingController initialController = TextEditingController();
     return Column(
       children: [
         TextField(
-          controller: initialController,
+          controller: doctorNumberController,
           decoration: InputDecoration(labelText: 'Enter your doctor\'s number'),
+        ),
+        TextField(
+          controller: familyNumberController,
+          decoration: InputDecoration(labelText: 'Enter a family member\'s number'),
         ),
         ElevatedButton(
           onPressed: () {
-            emergencyNumbers.add({
-              'name': 'My Doctor',
-              'number': initialController.text,
-              'icon': Icons.medical_services
-            });
-            _initializeControllers();
-            _updateEmergencyNumbers();
+            _initializeDefaultNumbers(FirebaseAuth.instance.currentUser?.uid ?? '');
             setState(() {
               _isDataLoaded = true;
             });
           },
-          child: Text('Save'),
+          child: Text('Save and Initialize'),
         )
       ],
     );
