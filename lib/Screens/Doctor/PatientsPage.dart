@@ -71,35 +71,55 @@ class _PatientsPageState extends State<PatientsPage> {
     TextEditingController idController = TextEditingController();
     AwesomeDialog(
       context: context,
-      dialogType: DialogType.question,
+      dialogType: DialogType.noHeader,
+      // Removes default icon and color
       borderSide: BorderSide(color: Color(0xFFd1baf8), width: 2),
-      width: MediaQuery.of(context).size.width * 0.9,
+      width: MediaQuery
+          .of(context)
+          .size
+          .width * 0.9,
       buttonsBorderRadius: BorderRadius.all(Radius.circular(2)),
       headerAnimationLoop: false,
       animType: AnimType.bottomSlide,
       title: 'Add Patient',
       desc: 'Enter the patient ID to add:',
-      body: Padding(
-        padding: const EdgeInsets.all(8.0),
-        child: TextField(
-          autofocus: true,
-          controller: idController,
-          decoration: InputDecoration(
-            hintText: "Patient's ID",
-            border: OutlineInputBorder(borderRadius: BorderRadius.circular(20)),
-            focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(25), borderSide: BorderSide(color: Color(0xFFd1baf8), width: 2)),
+      body: Column(
+        children: [
+          Padding(
+            padding: EdgeInsets.symmetric(vertical: 16),
+            child: Image.asset('assets/logo.png', width: 100,
+                height: 100), // Logo instead of color background
           ),
-        ),
+          TextField(
+            autofocus: true,
+            controller: idController,
+            decoration: InputDecoration(
+              hintText: "Patient's ID",
+              border: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(20)),
+              focusedBorder: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(25),
+                  borderSide: BorderSide(color: Color(0xFFd1baf8), width: 2)),
+            ),
+          ),
+        ],
       ),
       btnOk: ElevatedButton(
         onPressed: () async {
           final patientId = idController.text;
           String doctorId = FirebaseAuth.instance.currentUser?.uid ?? '';
-          FirebaseFirestore.instance.collection('users').doc(patientId).get().then((DocumentSnapshot documentSnapshot) {
+          FirebaseFirestore.instance.collection('users').doc(patientId)
+              .get()
+              .then((DocumentSnapshot documentSnapshot) {
             if (documentSnapshot.exists) {
-              Map<String, dynamic> patientData = documentSnapshot.data() as Map<String, dynamic>;
-              FirebaseFirestore.instance.collection('DoctorPatient').doc(doctorId).collection('patients').doc(patientId).set(patientData).then((_) {
-                print("Patient added to DoctorPatient");
+              Map<String, dynamic> patientData = documentSnapshot.data() as Map<
+                  String,
+                  dynamic>;
+              patientData['doctorId'] = doctorId;
+              FirebaseFirestore.instance.collection('DoctorPatient').doc(
+                  doctorId).collection('patients').doc(patientId).set(
+                  patientData).then((_) {
+                print("Patient added to DoctorPatient with doctorId");
                 Navigator.of(context).pop();
               }).catchError((error) => print("Failed to add patient: $error"));
             } else {
@@ -107,12 +127,14 @@ class _PatientsPageState extends State<PatientsPage> {
             }
           }).catchError((error) => print("Failed to fetch patient: $error"));
         },
-        style: ElevatedButton.styleFrom(primary: Color(0xFFd1baf8), onPrimary: Colors.white),
+        style: ElevatedButton.styleFrom(
+            primary: Color(0xFFd1baf8), onPrimary: Colors.white),
         child: Text('ADD'),
       ),
       btnCancelOnPress: () {},
     ).show();
   }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
