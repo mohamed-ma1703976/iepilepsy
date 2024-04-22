@@ -156,7 +156,7 @@ class _DoctorHomePageState extends State<DoctorHomePage> {
   }
 }
 
-  class AlertBar extends StatefulWidget {
+class AlertBar extends StatefulWidget {
   @override
   _AlertBarState createState() => _AlertBarState();
 }
@@ -193,7 +193,6 @@ class _AlertBarState extends State<AlertBar> {
     );
   }
 }
-
 class PatientsList extends StatelessWidget {
   final Future<List<Patient>> patientsFuture;
 
@@ -209,7 +208,6 @@ class PatientsList extends StatelessWidget {
         } else if (snapshot.hasError) {
           return Text("Error: ${snapshot.error}", style: TextStyle(color: Colors.white));
         } else if (snapshot.hasData && snapshot.data!.isNotEmpty) {
-          // Limit to showing only 3 patients
           var patients = snapshot.data!.take(3).toList();
           return ListView.builder(
             itemCount: patients.length,
@@ -218,7 +216,19 @@ class PatientsList extends StatelessWidget {
               return ListTile(
                 title: Text(patient.name, style: TextStyle(color: Colors.white)),
                 subtitle: Text('${patient.diagnosis}, ${patient.age} years old', style: TextStyle(color: Colors.white70)),
-                trailing: Icon(EvaIcons.heartOutline, color: Colors.white),
+                trailing: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    IconButton(
+                      icon: Icon(EvaIcons.messageCircleOutline, color: Colors.white),
+                      onPressed: () => _sendMessageDialog(context, patient.id),
+                    ),
+                  ],
+                ),
+                onTap: () {
+                  print('Tapped on patient: ${patient.id}');
+                  _showPatientHealthDataDialog(context, patient.id);
+                },
               );
             },
           );
@@ -226,6 +236,98 @@ class PatientsList extends StatelessWidget {
           return Text("No patients found.", style: TextStyle(color: Colors.white));
         }
       },
+    );
+  }
+
+  void _sendMessageDialog(BuildContext context, String patientId) {
+    TextEditingController messageController = TextEditingController();
+    showDialog(
+      context: context,
+      builder: (BuildContext context) {
+        return AlertDialog(
+          title: Text('Send Message to Patient'),
+          content: TextField(
+            controller: messageController,
+            decoration: InputDecoration(hintText: "Type your message here"),
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.of(context).pop(),
+              child: Text('Cancel'),
+            ),
+            TextButton(
+              onPressed: () => _saveMessageToFirestore(context, patientId, messageController.text),
+              child: Text('Send'),
+            ),
+          ],
+        );
+      },
+    );
+  }
+
+  void _saveMessageToFirestore(BuildContext context, String patientId, String message) {
+    if (message.isNotEmpty) {
+      String doctorId = FirebaseAuth.instance.currentUser?.uid ?? '';
+      FirebaseFirestore.instance.collection('DoctorMessages').add({
+        'doctorId': doctorId,
+        'patientId': patientId,
+        'message': message,
+        'timestamp': FieldValue.serverTimestamp(),
+      }).then((_) {
+        Navigator.of(context).pop();
+        ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(content: Text('Message sent successfully'))
+        );
+      }).catchError((error) {
+        print("Failed to send message: $error");
+      });
+    }
+  }
+
+  void _showPatientHealthDataDialog(BuildContext context, String patientId) {
+    FirebaseFirestore.instance.collection('healthData').doc(patientId).get().then((DocumentSnapshot documentSnapshot) {
+      Map<String, dynamic> healthData = documentSnapshot.data() as Map<String, dynamic>;
+      showDialog(
+          context: context,
+          builder: (BuildContext context) {
+            return AlertDialog(
+              title: Text('Health Data'),
+              content: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  _buildHealthDataItem('Heart Rate', healthData['heartRate']),
+                  _buildHealthDataItem('EEG', healthData['eeg']),
+                  _buildHealthDataItem('IR1', healthData['ir1']),
+                  _buildHealthDataItem('IR2', healthData['ir2']),
+                  _buildHealthDataItem('IR1 Blinks', healthData['ir1Blinks']),
+                  _buildHealthDataItem('IR2 Blinks', healthData['ir2Blinks']),
+                  _buildHealthDataItem('Seizure Detected', healthData['seizureDetected']),
+                ],
+              ),
+              actions: [
+                TextButton(
+                  onPressed: () => Navigator.pop(context),
+                  child: Text('Close'),
+                ),
+              ],
+            );
+          });
+    }).catchError((error) {
+      print("Failed to fetch health data: $error");
+    });
+  }
+
+  Widget _buildHealthDataItem(String title, dynamic value) {
+    return Padding(
+      padding: EdgeInsets.symmetric(vertical: 4.0),
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+        children: [
+          Text(title, style: TextStyle(fontWeight: FontWeight.bold)),
+          Text(value.toString()),
+        ],
+      ),
     );
   }
 }

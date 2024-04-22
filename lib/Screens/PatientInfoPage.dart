@@ -83,8 +83,10 @@ class _PatientInfoPageState extends State<PatientInfoPage> {
                     children: [
                       CircleAvatar(
                         radius: 60,
-                        backgroundImage: NetworkImage(patient.profileImage),
-                        backgroundColor: Color(0xFFcbb3e3),
+                        backgroundImage: patient!.profileImage.isNotEmpty
+                            ? NetworkImage(patient!.profileImage)
+                            : AssetImage('assets/default_avatar.jpg') as ImageProvider,
+                        backgroundColor: Colors.transparent,
                       ),
                       SizedBox(height: 20),
                       ...buildInfoRows(patient),

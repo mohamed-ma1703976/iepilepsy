@@ -27,12 +27,12 @@ class SensorData {
 
   factory SensorData.fromJson(Map<dynamic, dynamic> json) {
     return SensorData(
-      heartRate: json['heartRate'] as int? ?? 70,
+      heartRate: json['heartRate'] as int? ?? 0,
       eeg: json['EEG'] as int? ?? 0,
-      ir1: json['IR1'] as int? ?? 3,
-      ir2: json['IR2'] as int? ?? 2,
-      ir1Blinks: json['IR1Blinks'] as int? ?? 3,
-      ir2Blinks: json['IR2Blinks'] as int? ?? 2,
+      ir1: json['IR1'] as int? ?? 0,
+      ir2: json['IR2'] as int? ?? 0,
+      ir1Blinks: json['IR1Blinks'] as int? ?? 0,
+      ir2Blinks: json['IR2Blinks'] as int? ?? 0,
       seizureDetected: json['SeizureDetected'] as bool? ?? false,
     );
   }

@@ -29,7 +29,7 @@ class _CasesPageState extends State<CasesPage> {
     super.initState();
     _model = GenerativeModel(model: 'gemini-pro', apiKey: 'AIzaSyCAByXWEeKW4o12Y16h_Qet1tQOK_0wGc0');
     messages.add(ChatMessage(
-      text: 'Hello! I am Ai Assistant here to help you.',
+      text: 'Hello! I am IEpilepsy Assistant here to help you.',
       type: MessageType.received,
     ));
   }
@@ -138,7 +138,8 @@ class _CasesPageState extends State<CasesPage> {
                 if (!isSent)
                   CircleAvatar(
                     backgroundColor: Colors.deepPurple[200],
-                    child: Icon(EvaIcons.personOutline, color: Colors.white),
+                    // Using an image as the avatar
+                    backgroundImage: AssetImage('assets/logo.png'),
                   ),
                 SizedBox(width: 8),
                 Flexible(

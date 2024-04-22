@@ -59,5 +59,17 @@ class Patient {
       print("Error fetching patient: $e");
       return null;
     }
+
+  }
+  factory Patient.fromMap(Map<String, dynamic> data, String id) {
+    return Patient(
+      id: id,
+      name: data['name'] ?? '',
+      age: data['age'] ?? 0,
+      diagnosis: data['diagnosis'] ?? '',
+      gender: data['gender'] ?? '',
+      epilepsyType: data['epilepsyType'] ?? '',
+      profileImage: data['profileImage'] ?? '',
+    );
   }
 }

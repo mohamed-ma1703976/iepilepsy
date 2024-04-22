@@ -4,8 +4,9 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:awesome_dialog/awesome_dialog.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 
-// Patient model, assuming this is defined in your project as shown previously
+// Patient model with health data fields
 class Patient {
+  final String id;
   final String name;
   final int heartRate;
   final double eeg;
@@ -13,6 +14,7 @@ class Patient {
   final double ir2;
 
   Patient({
+    required this.id,
     required this.name,
     required this.heartRate,
     required this.eeg,
@@ -24,23 +26,13 @@ class Patient {
   factory Patient.fromFirestore(DocumentSnapshot doc) {
     Map data = doc.data() as Map<String, dynamic>;
     return Patient(
+      id: doc.id,
       name: data['name'] ?? '',
       heartRate: data['heartRate'] ?? 0,
       eeg: data['eeg'] ?? 0.0,
       ir1: data['ir1'] ?? 0.0,
       ir2: data['ir2'] ?? 0.0,
     );
-  }
-
-  // Convert Patient object to Map
-  Map<String, dynamic> toMap() {
-    return {
-      'name': name,
-      'heartRate': heartRate,
-      'eeg': eeg,
-      'ir1': ir1,
-      'ir2': ir2,
-    };
   }
 }
 
@@ -61,7 +53,29 @@ class _PatientsPageState extends State<PatientsPage> {
         .get();
 
     for (var doc in querySnapshot.docs) {
-      doctorPatients.add(Patient.fromFirestore(doc));
+      // Fetch health data from healthData collection
+      DocumentSnapshot healthSnapshot = await FirebaseFirestore.instance
+          .collection('healthData')
+          .doc(doc.id) // Use patient id as document id
+          .get();
+
+      // Merge patient data with health data or set to zeros if health data doesn't exist
+      Map<String, dynamic> patientData = doc.data() as Map<String, dynamic>;
+      Map<String, dynamic> healthData =
+      healthSnapshot.exists ? healthSnapshot.data() as Map<String, dynamic> : {};
+
+      // Create Patient object with merged data
+      Patient patient = Patient(
+        id: doc.id,
+        name: patientData['name'] ?? '',
+        heartRate: healthData['heartRate'] ?? 0,
+        eeg: healthData['eeg'] ?? 0.0,
+        ir1: healthData['ir1'] ?? 0.0,
+        ir2: healthData['ir2'] ?? 0.0,
+      );
+
+      // Add patient to the list
+      doctorPatients.add(patient);
     }
 
     return doctorPatients;
@@ -74,10 +88,7 @@ class _PatientsPageState extends State<PatientsPage> {
       dialogType: DialogType.noHeader,
       // Removes default icon and color
       borderSide: BorderSide(color: Color(0xFFd1baf8), width: 2),
-      width: MediaQuery
-          .of(context)
-          .size
-          .width * 0.9,
+      width: MediaQuery.of(context).size.width * 0.9,
       buttonsBorderRadius: BorderRadius.all(Radius.circular(2)),
       headerAnimationLoop: false,
       animType: AnimType.bottomSlide,
@@ -87,19 +98,18 @@ class _PatientsPageState extends State<PatientsPage> {
         children: [
           Padding(
             padding: EdgeInsets.symmetric(vertical: 16),
-            child: Image.asset('assets/logo.png', width: 100,
-                height: 100), // Logo instead of color background
+            child: Image.asset('assets/logo.png', width: 100, height: 100),
           ),
           TextField(
             autofocus: true,
             controller: idController,
             decoration: InputDecoration(
               hintText: "Patient's ID",
-              border: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(20)),
+              border: OutlineInputBorder(borderRadius: BorderRadius.circular(20)),
               focusedBorder: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(25),
-                  borderSide: BorderSide(color: Color(0xFFd1baf8), width: 2)),
+                borderRadius: BorderRadius.circular(25),
+                borderSide: BorderSide(color: Color(0xFFd1baf8), width: 2),
+              ),
             ),
           ),
         ],
@@ -108,27 +118,24 @@ class _PatientsPageState extends State<PatientsPage> {
         onPressed: () async {
           final patientId = idController.text;
           String doctorId = FirebaseAuth.instance.currentUser?.uid ?? '';
-          FirebaseFirestore.instance.collection('users').doc(patientId)
-              .get()
-              .then((DocumentSnapshot documentSnapshot) {
-            if (documentSnapshot.exists) {
-              Map<String, dynamic> patientData = documentSnapshot.data() as Map<
-                  String,
-                  dynamic>;
-              patientData['doctorId'] = doctorId;
-              FirebaseFirestore.instance.collection('DoctorPatient').doc(
-                  doctorId).collection('patients').doc(patientId).set(
-                  patientData).then((_) {
-                print("Patient added to DoctorPatient with doctorId");
-                Navigator.of(context).pop();
-              }).catchError((error) => print("Failed to add patient: $error"));
-            } else {
-              print("Patient not found");
-            }
-          }).catchError((error) => print("Failed to fetch patient: $error"));
+          FirebaseFirestore.instance.collection('users').doc(patientId).get().then(
+                (DocumentSnapshot documentSnapshot) {
+              if (documentSnapshot.exists) {
+                Map<String, dynamic> patientData = documentSnapshot.data() as Map<String, dynamic>;
+                patientData['doctorId'] = doctorId;
+                FirebaseFirestore.instance.collection('DoctorPatient').doc(doctorId).collection('patients').doc(patientId).set(patientData).then(
+                      (_) {
+                    print("Patient added to DoctorPatient with doctorId");
+                    Navigator.of(context).pop();
+                  },
+                ).catchError((error) => print("Failed to add patient: $error"));
+              } else {
+                print("Patient not found");
+              }
+            },
+          ).catchError((error) => print("Failed to fetch patient: $error"));
         },
-        style: ElevatedButton.styleFrom(
-            primary: Color(0xFFd1baf8), onPrimary: Colors.white),
+        style: ElevatedButton.styleFrom(primary: Color(0xFFd1baf8), onPrimary: Colors.white),
         child: Text('ADD'),
       ),
       btnCancelOnPress: () {},

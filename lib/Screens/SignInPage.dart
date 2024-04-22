@@ -97,7 +97,7 @@ class _SignInPageState extends State<SignInPage> with SingleTickerProviderStateM
         );
       } else if (userType == "Family Member") {
         Navigator.of(context).pushReplacement(
-          MaterialPageRoute(builder: (context) => FamilyMainHome()),
+          MaterialPageRoute(builder: (context) => FamilyMainHome(generatedUserId: customUserId)),
         );
       } else {
         // For 'Patient' or any other userType

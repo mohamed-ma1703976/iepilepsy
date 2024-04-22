@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'package:rxdart/rxdart.dart';
 
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
@@ -8,7 +9,7 @@ import 'package:clay_containers/clay_containers.dart';
 import 'package:eva_icons_flutter/eva_icons_flutter.dart';
 import 'package:flutter_staggered_animations/flutter_staggered_animations.dart';
 import 'dart:typed_data'; // Required for using Uint8List
-
+import 'package:rxdart/rxdart.dart';
 import 'SignInPage.dart';
 import 'UpdatesPage.dart';
 class UpdatedHomePage extends StatefulWidget {
@@ -18,23 +19,41 @@ class UpdatedHomePage extends StatefulWidget {
 
 class _UpdatedHomePageState extends State<UpdatedHomePage> {
   late Future<SensorData> futureSensorData;
-
-  Future<SensorData> fetchData() async {
-    DatabaseReference ref = FirebaseDatabase.instance.ref('path/to/your/data/node');
-    DataSnapshot snapshot = await ref.get();
-
-    if (snapshot.exists) {
-      Map<dynamic, dynamic> dataMap = Map<dynamic, dynamic>.from(snapshot.value as Map);
-      return SensorData.fromJson(dataMap);
-    } else {
-      throw Exception('Failed to load sensor data');
-    }
-  }
+  late String patientId; // Define patientId variable
+  final DatabaseReference dbRef = FirebaseDatabase.instance.reference();
+  final FirebaseFirestore firestore = FirebaseFirestore.instance;
 
   @override
   void initState() {
     super.initState();
-    futureSensorData = fetchData();
+    // Get the current user's uid as the patientId
+    patientId = FirebaseAuth.instance.currentUser?.uid ?? '';
+    futureSensorData = fetchData(); // Fetch sensor data
+  }
+
+  Future<SensorData> fetchData() async {
+    final snapshot = await dbRef.child('path/to/your/data/node').orderByKey().limitToLast(10).get();
+    // Assuming 'path/to/your/data/node' points to a collection of records
+
+    if (snapshot.exists && snapshot.value != null) {
+      Map<dynamic, dynamic> dataMap = Map<dynamic, dynamic>.from(snapshot.value as Map);
+      SensorData latestValidData = SensorData(heartRate: 0, eeg: 0, ir1: 0, ir2: 0, ir1Blinks: 0, ir2Blinks: 0, seizureDetected: false);
+
+      // Iterate in reverse to find the latest non-zero EEG value
+      for (var key in dataMap.keys.toList().reversed) {
+        var record = SensorData.fromJson(Map<dynamic, dynamic>.from(dataMap[key]));
+        if (record.eeg != 0) {
+          latestValidData = record;
+          break; // Found the latest non-zero EEG value, break the loop
+        }
+      }
+
+      print("Latest valid data: Heart Rate: ${latestValidData.heartRate}, EEG: ${latestValidData.eeg}, ...");
+      return latestValidData;
+    } else {
+      print("No data found at the specified path.");
+      return SensorData(heartRate: 0, eeg: 0, ir1: 0, ir2: 0, ir1Blinks: 0, ir2Blinks: 0, seizureDetected: false);
+    }
   }
 
   @override
@@ -126,153 +145,85 @@ void _logout(BuildContext context) {
 }
 
 enum AlertType { alert1, alert2, alert3, alert4 }
-
 class AlertBar extends StatefulWidget {
   @override
   _AlertBarState createState() => _AlertBarState();
 }
 
 class _AlertBarState extends State<AlertBar> {
-  AlertType _currentAlertType = AlertType.alert1;
-  late Timer _timer;
-  int _currentIndex = 0;
+  String _latestMessage = 'No new messages available.';
+  String _latestFamilyMessage = '';
+  String _latestDoctorMessage = '';
+  Timer? _timer;
 
   @override
   void initState() {
     super.initState();
-    _timer = Timer.periodic(Duration(seconds: 5), (timer) {
-      _changeAlertType();
+    _fetchLatestMessages();
+    _timer = Timer.periodic(Duration(minutes: 5), (timer) {
+      _fetchLatestMessages(); // Fetch messages every 5 minutes
     });
-  }
-
-  void _changeAlertType() {
-    setState(() {
-      _currentIndex = (_currentIndex + 1) % 4;
-      _currentAlertType = AlertType.values[_currentIndex];
-    });
-  }
-
-  String getAlertMessage() {
-    switch (_currentAlertType) {
-      case AlertType.alert1:
-        return 'Seizure Detected!';
-      case AlertType.alert2:
-        return 'Medication Reminder.';
-      case AlertType.alert3:
-        return 'Appointment Reminder.';
-      case AlertType.alert4:
-        return 'Low Battery of the band.';
-      default:
-        return 'Important Message Here.';
-    }
   }
 
   @override
   void dispose() {
-    _timer.cancel();
+    _timer?.cancel();
     super.dispose();
   }
 
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      padding: EdgeInsets.symmetric(horizontal: 12.0, vertical: 8.0),
-      decoration: BoxDecoration(
-        borderRadius: BorderRadius.circular(25.0),
-        color: Colors.red,
-      ),
-      child: Row(
-        children: [
-          Icon(EvaIcons.alertCircleOutline, color: Colors.white, size: 40),
-          SizedBox(width: 12),
-          Expanded(
-            child: Text(
-              getAlertMessage(),
-              style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 18),
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-}
+  Future<void> _fetchLatestMessages() async {
+    String patientId = FirebaseAuth.instance.currentUser?.uid ?? '';
+    try {
+      var familyMessageDoc = await FirebaseFirestore.instance
+          .collection('FamilyMessages')
+          .where('patientId', isEqualTo: patientId)
+          .orderBy('timestamp', descending: true)
+          .limit(1)
+          .get();
 
-class MessageDoctorCard extends StatelessWidget {
-  @override
-  Widget build(BuildContext context) {
-    return GestureDetector(
-      onTap: () {
-        _showMessageDialog(context);
-      },
-      child: ClayContainer(
-        borderRadius: 25,
-        depth: 20,
-        spread: 5,
-        child: Padding(
-          padding: const EdgeInsets.all(8.0),
-          child: Row(
-            children: [
-              Icon(EvaIcons.emailOutline, color: Colors.red, size: 24),
-              SizedBox(width: 8),
-              Text('Message Your Dr', style: TextStyle(color: Colors.red, fontSize: 16, fontWeight: FontWeight.bold)),
-            ],
-          ),
-        ),
-      ),
-    );
+      var doctorMessageDoc = await FirebaseFirestore.instance
+          .collection('DoctorMessages')
+          .where('patientId', isEqualTo: patientId)
+          .orderBy('timestamp', descending: true)
+          .limit(1)
+          .get();
+
+      if (familyMessageDoc.docs.isNotEmpty) {
+        _latestFamilyMessage = familyMessageDoc.docs.first.data()['message'] ?? '';
+      }
+
+      if (doctorMessageDoc.docs.isNotEmpty) {
+        _latestDoctorMessage = doctorMessageDoc.docs.first.data()['message'] ?? '';
+      }
+
+      setState(() {
+        _latestMessage = _latestFamilyMessage.isNotEmpty ? _latestFamilyMessage : (_latestDoctorMessage.isNotEmpty ? _latestDoctorMessage : "No new messages.");
+      });
+    } catch (e) {
+      print("Failed to fetch messages: $e");
+    }
   }
 
-  void _showMessageDialog(BuildContext context) {
-    TextEditingController _messageController = TextEditingController();
-
+  void _showMessagesDialog(BuildContext context) {
     showDialog(
       context: context,
-      builder: (context) {
+      builder: (BuildContext context) {
         return AlertDialog(
-          title: Text("Message to Your Doctor"),
-          content: TextField(
-            controller: _messageController,
-            maxLines: 5,
-            decoration: InputDecoration(
-              hintText: "Type your message here...",
-              border: OutlineInputBorder(),
+          title: Text('Latest Messages'),
+          content: SingleChildScrollView(
+            child: ListBody(
+              children: <Widget>[
+                Text('Family Message: $_latestFamilyMessage'),
+                SizedBox(height: 16),
+                Text('Doctor Message: $_latestDoctorMessage'),
+              ],
             ),
           ),
           actions: <Widget>[
             TextButton(
-              child: Text("Cancel"),
+              child: Text('Close'),
               onPressed: () {
                 Navigator.of(context).pop();
-              },
-            ),
-            TextButton(
-              child: Text("Send"),
-              onPressed: () async {
-                try {
-                  String patientId = FirebaseAuth.instance.currentUser?.uid ?? '';
-                  DocumentSnapshot patientDoc = await FirebaseFirestore.instance.collection('DoctorPatient').doc(patientId).get();
-                  if (patientDoc.exists) {
-                    var data = patientDoc.data() as Map<String, dynamic>;
-                    String? doctorId = data['doctorId'];
-                    if (doctorId != null) {
-                      await FirebaseFirestore.instance.collection('messages').add({
-                        'doctorId': doctorId,
-                        'patientId': patientId,
-                        'message': _messageController.text,
-                        'timestamp': FieldValue.serverTimestamp(),
-                      });
-                      Navigator.of(context).pop();
-                      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text("Message sent successfully!")));
-                    } else {
-                      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text("Doctor ID not found.")));
-                    }
-                  } else {
-                    ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text("Patient document does not exist.")));
-                  }
-                } catch (e) {
-                  print(e);
-                  ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text("Failed to send message.")));
-                }
               },
             ),
           ],
@@ -281,6 +232,34 @@ class MessageDoctorCard extends StatelessWidget {
     );
   }
 
+  @override
+  Widget build(BuildContext context) {
+    return GestureDetector(
+      onTap: () => _showMessagesDialog(context),
+      child: Container(
+        padding: EdgeInsets.symmetric(horizontal: 12.0, vertical: 8.0),
+        decoration: BoxDecoration(
+          borderRadius: BorderRadius.circular(25.0),
+          color: Colors.redAccent,
+        ),
+        child: Row(
+          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          children: [
+            Icon(Icons.warning, color: Colors.white),
+            Expanded(
+              child: Text(
+                _latestMessage,
+                style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
+                overflow: TextOverflow.ellipsis,
+              ),
+            ),
+            Icon(Icons.arrow_forward, color: Colors.white),
+          ],
+        ),
+      ),
+    );
+  }
+}
   Future<String?> _fetchDoctorId() async {
     String patientId = FirebaseAuth.instance.currentUser?.uid ?? '';
     DocumentSnapshot patientDoc = await FirebaseFirestore.instance.collection('DoctorPatient').doc(patientId).get();
@@ -292,9 +271,6 @@ class MessageDoctorCard extends StatelessWidget {
     }
     return null;  // Return null if the document does not exist or data is not accessible
   }
-
-
-}
 class CurrentReadingsBox extends StatelessWidget {
   final SensorData sensorData;
 

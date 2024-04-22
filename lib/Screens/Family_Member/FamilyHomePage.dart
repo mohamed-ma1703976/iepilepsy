@@ -1,3 +1,4 @@
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:eva_icons_flutter/eva_icons_flutter.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
@@ -7,7 +8,7 @@ import '../SignInPage.dart'; // Ensure this path correctly leads to your Patient
 class FamilyHomePage extends StatefulWidget {
   final Patient patient;
 
-  FamilyHomePage({required this.patient});
+  FamilyHomePage({Key? key, required this.patient}) : super(key: key);
 
   @override
   _FamilyHomePageState createState() => _FamilyHomePageState();
@@ -16,7 +17,10 @@ class FamilyHomePage extends StatefulWidget {
 class _FamilyHomePageState extends State<FamilyHomePage> {
   @override
   Widget build(BuildContext context) {
-    double padding = MediaQuery.of(context).size.width * 0.05;
+    double padding = MediaQuery
+        .of(context)
+        .size
+        .width * 0.05;
 
     return Scaffold(
       appBar: AppBar(
@@ -44,11 +48,14 @@ class _FamilyHomePageState extends State<FamilyHomePage> {
                 SizedBox(height: 20),
                 Text(
                   'Live Patient Data',
-                  style: TextStyle(fontSize: 22, fontWeight: FontWeight.bold, color: Colors.white),
+                  style: TextStyle(fontSize: 22,
+                      fontWeight: FontWeight.bold,
+                      color: Colors.white),
                 ),
                 SizedBox(height: 10),
                 Expanded(
-                  child: LiveDataFeed(patientId: widget.patient.id), // Now passing patientId
+                  child: LiveDataFeed(
+                      patientId: widget.patient.id), // Now passing patientId
                 ),
                 SizedBox(height: 20),
               ],
@@ -71,16 +78,29 @@ class _FamilyHomePageState extends State<FamilyHomePage> {
       builder: (context) => SignInPage(),
     ));
   }
+
   void _showMessageDialog() {
-    TextEditingController messageController = TextEditingController();
+    TextEditingController titleController = TextEditingController();
+    TextEditingController bodyController = TextEditingController();
+
     showDialog(
       context: context,
       builder: (context) {
         return AlertDialog(
           title: Text("Send a Message"),
-          content: TextField(
-            controller: messageController,
-            decoration: InputDecoration(hintText: "Type your message here"),
+          content: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              TextField(
+                controller: titleController,
+                decoration: InputDecoration(hintText: "Title"),
+              ),
+              SizedBox(height: 8),
+              TextField(
+                controller: bodyController,
+                decoration: InputDecoration(hintText: "Message"),
+              ),
+            ],
           ),
           actions: <Widget>[
             TextButton(
@@ -90,8 +110,12 @@ class _FamilyHomePageState extends State<FamilyHomePage> {
             TextButton(
               child: Text("Send"),
               onPressed: () {
-                // Here, add logic to actually send a message, perhaps through Firestore
-                Navigator.of(context).pop();
+                String title = titleController.text.trim();
+                String body = bodyController.text.trim();
+                if (title.isNotEmpty && body.isNotEmpty) {
+                  _sendMessage(title, body);
+                  Navigator.of(context).pop();
+                }
               },
             ),
           ],
@@ -99,8 +123,23 @@ class _FamilyHomePageState extends State<FamilyHomePage> {
       },
     );
   }
+
+  void _sendMessage(String title, String body) {
+    String patientId = widget.patient.id;
+
+    FirebaseFirestore.instance.collection('FamilyMessages').add({
+      'patientId': patientId,
+      'title': title,
+      'body': body,
+      'timestamp': FieldValue.serverTimestamp(), // Add timestamp for sorting
+    }).then((_) {
+      print('Message sent successfully');
+    }).catchError((error) {
+      print('Failed to send message: $error');
+    });
+  }
 }
-class LiveDataFeed extends StatefulWidget {
+  class LiveDataFeed extends StatefulWidget {
   final String patientId;
 
   LiveDataFeed({required this.patientId});
