@@ -1,10 +1,8 @@
 import 'package:flutter/material.dart';
-import 'package:eva_icons_flutter/eva_icons_flutter.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
-import 'package:awesome_dialog/awesome_dialog.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:awesome_dialog/awesome_dialog.dart';
 
-// Patient model with health data fields
 class Patient {
   final String id;
   final String name;
@@ -22,16 +20,14 @@ class Patient {
     required this.ir2,
   });
 
-  // Convert Firestore DocumentSnapshot to Patient
-  factory Patient.fromFirestore(DocumentSnapshot doc) {
-    Map data = doc.data() as Map<String, dynamic>;
+  factory Patient.fromFirestore(DocumentSnapshot doc, Map<String, dynamic> healthData) {
     return Patient(
       id: doc.id,
-      name: data['name'] ?? '',
-      heartRate: data['heartRate'] ?? 0,
-      eeg: data['eeg'] ?? 0.0,
-      ir1: data['ir1'] ?? 0.0,
-      ir2: data['ir2'] ?? 0.0,
+      name: doc['name'] ?? '',
+      heartRate: healthData['heartRate'] ?? 0,
+      eeg: healthData['eeg'] ?? 0.0,
+      ir1: healthData['ir1'] ?? 0.0,
+      ir2: healthData['ir2'] ?? 0.0,
     );
   }
 }
@@ -53,28 +49,15 @@ class _PatientsPageState extends State<PatientsPage> {
         .get();
 
     for (var doc in querySnapshot.docs) {
-      // Fetch health data from healthData collection
       DocumentSnapshot healthSnapshot = await FirebaseFirestore.instance
           .collection('healthData')
-          .doc(doc.id) // Use patient id as document id
+          .doc(doc.id) // This assumes health data uses patient id as the document id
           .get();
 
-      // Merge patient data with health data or set to zeros if health data doesn't exist
-      Map<String, dynamic> patientData = doc.data() as Map<String, dynamic>;
       Map<String, dynamic> healthData =
       healthSnapshot.exists ? healthSnapshot.data() as Map<String, dynamic> : {};
 
-      // Create Patient object with merged data
-      Patient patient = Patient(
-        id: doc.id,
-        name: patientData['name'] ?? '',
-        heartRate: healthData['heartRate'] ?? 0,
-        eeg: healthData['eeg'] ?? 0.0,
-        ir1: healthData['ir1'] ?? 0.0,
-        ir2: healthData['ir2'] ?? 0.0,
-      );
-
-      // Add patient to the list
+      Patient patient = Patient.fromFirestore(doc, healthData);
       doctorPatients.add(patient);
     }
 
@@ -86,7 +69,6 @@ class _PatientsPageState extends State<PatientsPage> {
     AwesomeDialog(
       context: context,
       dialogType: DialogType.noHeader,
-      // Removes default icon and color
       borderSide: BorderSide(color: Color(0xFFd1baf8), width: 2),
       width: MediaQuery.of(context).size.width * 0.9,
       buttonsBorderRadius: BorderRadius.all(Radius.circular(2)),
@@ -98,48 +80,51 @@ class _PatientsPageState extends State<PatientsPage> {
         children: [
           Padding(
             padding: EdgeInsets.symmetric(vertical: 16),
-            child: Image.asset('assets/logo.png', width: 100, height: 100),
-          ),
-          TextField(
-            autofocus: true,
-            controller: idController,
-            decoration: InputDecoration(
-              hintText: "Patient's ID",
-              border: OutlineInputBorder(borderRadius: BorderRadius.circular(20)),
-              focusedBorder: OutlineInputBorder(
-                borderRadius: BorderRadius.circular(25),
-                borderSide: BorderSide(color: Color(0xFFd1baf8), width: 2),
+            child: TextField(
+              autofocus: true,
+              controller: idController,
+              decoration: InputDecoration(
+                hintText: "Patient's ID",
+                border: OutlineInputBorder(borderRadius: BorderRadius.circular(20)),
+                focusedBorder: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(25),
+                  borderSide: BorderSide(color: Color(0xFFd1baf8), width: 2),
+                ),
               ),
             ),
           ),
         ],
       ),
       btnOk: ElevatedButton(
-        onPressed: () async {
-          final patientId = idController.text;
-          String doctorId = FirebaseAuth.instance.currentUser?.uid ?? '';
-          FirebaseFirestore.instance.collection('users').doc(patientId).get().then(
-                (DocumentSnapshot documentSnapshot) {
-              if (documentSnapshot.exists) {
-                Map<String, dynamic> patientData = documentSnapshot.data() as Map<String, dynamic>;
-                patientData['doctorId'] = doctorId;
-                FirebaseFirestore.instance.collection('DoctorPatient').doc(doctorId).collection('patients').doc(patientId).set(patientData).then(
-                      (_) {
-                    print("Patient added to DoctorPatient with doctorId");
-                    Navigator.of(context).pop();
-                  },
-                ).catchError((error) => print("Failed to add patient: $error"));
-              } else {
-                print("Patient not found");
-              }
-            },
-          ).catchError((error) => print("Failed to fetch patient: $error"));
+        onPressed: () {
+          // Functionality to add a patient
+          _addPatient(idController.text);
         },
         style: ElevatedButton.styleFrom(primary: Color(0xFFd1baf8), onPrimary: Colors.white),
         child: Text('ADD'),
       ),
       btnCancelOnPress: () {},
     ).show();
+  }
+
+  Future<void> _addPatient(String patientId) async {
+    String doctorId = FirebaseAuth.instance.currentUser?.uid ?? '';
+    FirebaseFirestore.instance.collection('users').doc(patientId).get().then(
+          (DocumentSnapshot documentSnapshot) {
+        if (documentSnapshot.exists) {
+          Map<String, dynamic> patientData = documentSnapshot.data() as Map<String, dynamic>;
+          patientData['doctorId'] = doctorId;
+          FirebaseFirestore.instance.collection('DoctorPatient').doc(doctorId).collection('patients').doc(patientId).set(patientData).then(
+                (_) {
+              print("Patient added to DoctorPatient with doctorId");
+              Navigator.of(context).pop();
+            },
+          ).catchError((error) => print("Failed to add patient: $error"));
+        } else {
+          print("Patient not found");
+        }
+      },
+    ).catchError((error) => print("Failed to fetch patient: $error"));
   }
 
   @override
@@ -183,7 +168,7 @@ class _PatientsPageState extends State<PatientsPage> {
       floatingActionButton: FloatingActionButton(
         onPressed: _showAddPatientDialog,
         backgroundColor: Colors.white,
-        child: Icon(EvaIcons.plus, color: Color(0xFFd1baf8)),
+        child: Icon(Icons.add, color: Color(0xFFd1baf8)),
       ),
       backgroundColor: Color(0xFFd1baf8),
     );

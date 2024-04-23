@@ -1,26 +1,55 @@
-import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:eva_icons_flutter/eva_icons_flutter.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import '../../Model/Patient.dart';
-import '../SignInPage.dart'; // Ensure this path correctly leads to your Patient model
+import '../SignInPage.dart';
 
 class FamilyHomePage extends StatefulWidget {
-  final Patient patient;
+  final String userId;
 
-  FamilyHomePage({Key? key, required this.patient}) : super(key: key);
+  FamilyHomePage({Key? key, required this.userId}) : super(key: key);
 
   @override
   _FamilyHomePageState createState() => _FamilyHomePageState();
 }
 
 class _FamilyHomePageState extends State<FamilyHomePage> {
+  String? patientId;
+  bool isLoading = true;
+  String? errorMessage;
+
+  @override
+  void initState() {
+    super.initState();
+    fetchPatientId();
+  }
+
+  void fetchPatientId() async {
+    try {
+      DocumentSnapshot familyPatient = await FirebaseFirestore.instance
+          .collection('FamilyPatient')
+          .doc(widget.userId)
+          .get();
+
+      if (familyPatient.exists && familyPatient.data() != null) {
+        setState(() {
+          patientId = familyPatient['patientId'];
+          isLoading = false;
+        });
+      } else {
+        throw Exception("No patient data available.");
+      }
+    } catch (e) {
+      setState(() {
+        isLoading = false;
+        errorMessage = e.toString();
+      });
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
-    double padding = MediaQuery
-        .of(context)
-        .size
-        .width * 0.05;
+    double padding = MediaQuery.of(context).size.width * 0.05;
 
     return Scaffold(
       appBar: AppBar(
@@ -48,14 +77,15 @@ class _FamilyHomePageState extends State<FamilyHomePage> {
                 SizedBox(height: 20),
                 Text(
                   'Live Patient Data',
-                  style: TextStyle(fontSize: 22,
-                      fontWeight: FontWeight.bold,
-                      color: Colors.white),
+                  style: TextStyle(fontSize: 22, fontWeight: FontWeight.bold, color: Colors.white),
                 ),
                 SizedBox(height: 10),
                 Expanded(
-                  child: LiveDataFeed(
-                      patientId: widget.patient.id), // Now passing patientId
+                  child: isLoading
+                      ? Center(child: CircularProgressIndicator())
+                      : errorMessage != null
+                      ? Center(child: Text(errorMessage!))
+                      : LiveDataFeed(patientId: patientId!),
                 ),
                 SizedBox(height: 20),
               ],
@@ -72,11 +102,7 @@ class _FamilyHomePageState extends State<FamilyHomePage> {
   }
 
   void _logout(BuildContext context) {
-    // Implement your logout logic here
-    // Navigate to SignInPage after logout
-    Navigator.of(context).pushReplacement(MaterialPageRoute(
-      builder: (context) => SignInPage(),
-    ));
+    Navigator.of(context).pushReplacement(MaterialPageRoute(builder: (context) => SignInPage()));
   }
 
   void _showMessageDialog() {
@@ -102,7 +128,7 @@ class _FamilyHomePageState extends State<FamilyHomePage> {
               ),
             ],
           ),
-          actions: <Widget>[
+          actions: [
             TextButton(
               child: Text("Cancel"),
               onPressed: () => Navigator.of(context).pop(),
@@ -125,21 +151,22 @@ class _FamilyHomePageState extends State<FamilyHomePage> {
   }
 
   void _sendMessage(String title, String body) {
-    String patientId = widget.patient.id;
-
-    FirebaseFirestore.instance.collection('FamilyMessages').add({
-      'patientId': patientId,
-      'title': title,
-      'body': body,
-      'timestamp': FieldValue.serverTimestamp(), // Add timestamp for sorting
-    }).then((_) {
-      print('Message sent successfully');
-    }).catchError((error) {
-      print('Failed to send message: $error');
-    });
+    if (patientId != null) {
+      FirebaseFirestore.instance.collection('FamilyMessages').add({
+        'patientId': patientId,
+        'title': title,
+        'body': body,
+        'timestamp': FieldValue.serverTimestamp(),
+      }).then((_) {
+        print('Message sent successfully');
+      }).catchError((error) {
+        print('Failed to send message: $error');
+      });
+    }
   }
 }
-  class LiveDataFeed extends StatefulWidget {
+
+class LiveDataFeed extends StatefulWidget {
   final String patientId;
 
   LiveDataFeed({required this.patientId});
@@ -156,19 +183,23 @@ class _LiveDataFeedState extends State<LiveDataFeed> {
     return StreamBuilder<DocumentSnapshot>(
       stream: _firestore.collection('healthData').doc(widget.patientId).snapshots(),
       builder: (context, snapshot) {
-        // Default values
-        var heartRate = 0;
-        var eeg = 0;
-        var ir1Blinks = 0;
-        var ir2Blinks = 0;
-
-        if (snapshot.hasData && snapshot.data!.data() != null) {
-          var data = snapshot.data!.data() as Map<String, dynamic>;
-          heartRate = data['heartRate'] ?? 0;
-          eeg = data['eeg'] ?? 0;
-          ir1Blinks = data['ir1Blinks'] ?? 0;
-          ir2Blinks = data['ir2Blinks'] ?? 0;
+        if (snapshot.connectionState == ConnectionState.waiting) {
+          return Center(child: CircularProgressIndicator());
         }
+
+        if (snapshot.hasError) {
+          return Center(child: Text('Error loading data'));
+        }
+
+        if (!snapshot.hasData || snapshot.data!.data() == null) {
+          return Center(child: Text('No data available'));
+        }
+
+        var data = snapshot.data!.data() as Map<String, dynamic>;
+        var heartRate = data['heartRate'] ?? 0;
+        var eeg = data['eeg'] ?? 0;
+        var ir1Blinks = data['ir1Blinks'] ?? 0;
+        var ir2Blinks = data['ir2Blinks'] ?? 0;
 
         return Container(
           padding: EdgeInsets.all(16),
@@ -178,11 +209,10 @@ class _LiveDataFeedState extends State<LiveDataFeed> {
           ),
           child: Column(
             children: [
-              _buildDataItem('Heart Rate', heartRate.toString()),
+              _buildDataItem('Heart Rate', '$heartRate bpm'),
               _buildDataItem('EEG', eeg.toString()),
               _buildDataItem('IR1 Blinks', ir1Blinks.toString()),
               _buildDataItem('IR2 Blinks', ir2Blinks.toString()),
-              // Additional data items can be added here if needed
             ],
           ),
         );

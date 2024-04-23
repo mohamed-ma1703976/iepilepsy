@@ -27,7 +27,7 @@ class _HomePageState extends State<HomePage> {
       UpdatedHomePage(),
       PatientInfoPage(patientId: widget.patientId), // Updated to pass patientId
       CasesPage(),
-      SensorDataPage(),
+      SensorDataPage(userId: widget.patientId),
       EmergencyNumbersPage(),
     ];
   }

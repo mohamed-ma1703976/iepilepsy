@@ -55,7 +55,7 @@ class _FamilyMainHomeState extends State<FamilyMainHome> {
     Patient? patient = patientData != null ? Patient.fromMap(patientData, widget.generatedUserId) : null;
 
     _pageOptions = [
-      patient != null ? FamilyHomePage(patient: patient) : PlaceholderWidget(reason: "No patient data available"),
+      patient != null ? FamilyHomePage(userId: widget.generatedUserId) : PlaceholderWidget(reason: "No patient data available"),
       PatientProfilePage(userId: widget.generatedUserId),
       FamilyNotificationsPage(),
       HelpPage(),
