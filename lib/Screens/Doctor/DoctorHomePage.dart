@@ -298,8 +298,6 @@ class PatientsList extends StatelessWidget {
                 children: [
                   _buildHealthDataItem('Heart Rate', healthData['heartRate']),
                   _buildHealthDataItem('EEG', healthData['eeg']),
-                  _buildHealthDataItem('IR1', healthData['ir1']),
-                  _buildHealthDataItem('IR2', healthData['ir2']),
                   _buildHealthDataItem('IR1 Blinks', healthData['ir1Blinks']),
                   _buildHealthDataItem('IR2 Blinks', healthData['ir2Blinks']),
                   _buildHealthDataItem('Seizure Detected', healthData['seizureDetected']),
